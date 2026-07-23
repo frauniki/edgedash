@@ -3,7 +3,9 @@ import Foundation
 import Testing
 @testable import WidgetEngine
 
-@Suite struct GridGeometryTests {
+// @MainActor: the geometry helpers live on DashboardPageView, whose View
+// conformance makes them MainActor-isolated.
+@MainActor @Suite struct GridGeometryTests {
     private let canvas = CGSize(width: 2560, height: 720)
     private let grid = GridDimensions.landscape
 
