@@ -3,15 +3,16 @@ import EdgeCore
 import Foundation
 
 public extension MetricID {
-    static let memoryUsage = MetricID("mem.usage")         // scalar 0–1 (Activity Monitor "Used" / total)
-    static let memoryBreakdown = MetricID("mem.breakdown") // composite, bytes
-    static let memoryPressure = MetricID("mem.pressure")   // scalar: 1 normal / 2 warning / 4 critical
+    static let memoryUsage = MetricID("mem.usage")           // scalar 0–1 (Activity Monitor "Used" / total)
+    static let memoryBreakdown = MetricID("mem.breakdown")   // composite, bytes
+    static let memoryPressure = MetricID("mem.pressure")     // scalar: 1 normal / 2 warning / 4 critical
+    static let memoryPressurePercent = MetricID("mem.pressurePct") // scalar 0–1 (1 − kern.memorystatus_level)
 }
 
 public struct MemoryReader: MetricReader {
     public init() {}
 
-    public var provides: [MetricID] { [.memoryUsage, .memoryBreakdown, .memoryPressure] }
+    public var provides: [MetricID] { [.memoryUsage, .memoryBreakdown, .memoryPressure, .memoryPressurePercent] }
     public var cadence: MetricCadence { .every(2) }
 
     public func read() throws -> [MetricSample] {
@@ -34,6 +35,11 @@ public struct MemoryReader: MetricReader {
         let used = Self.usedBytes(app: app, wired: wired, compressed: compressed)
         let swap = Sysctl.swapUsage()
 
+        // kern.memorystatus_level = free percentage; iStat-style pressure is
+        // its complement.
+        let level = Sysctl.value("kern.memorystatus_level", default: Int32(100))
+        let pressureFraction = Double(100 - min(max(level, 0), 100)) / 100
+
         return [
             MetricSample(id: .memoryUsage, value: .scalar(Self.usedFraction(used: used, total: total))),
             MetricSample(id: .memoryBreakdown, value: .composite([
@@ -41,11 +47,13 @@ public struct MemoryReader: MetricReader {
                 "wired": Double(wired),
                 "compressed": Double(compressed),
                 "used": Double(used),
+                "free": Double(total > used ? total - used : 0),
                 "total": Double(total),
                 "swapUsed": Double(swap.xsu_used),
                 "swapTotal": Double(swap.xsu_total),
             ])),
             MetricSample(id: .memoryPressure, value: .scalar(Double(Sysctl.memoryPressureLevel()))),
+            MetricSample(id: .memoryPressurePercent, value: .scalar(pressureFraction)),
         ]
     }
 

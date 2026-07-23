@@ -231,6 +231,61 @@ public struct StackedBarHistory: View {
     }
 }
 
+/// Full-circle ring whose progress is split into colored segments (iStat's
+/// memory ring: app + wired + compressed), with a big centered value and a
+/// small caption beneath it. Sizes itself square.
+public struct SegmentedRing: View {
+    @Environment(\.theme) private var theme
+    let segments: [(fraction: Double, color: Color)]
+    let value: String
+    let caption: String
+
+    public init(segments: [(fraction: Double, color: Color)], value: String, caption: String) {
+        self.segments = segments
+        self.value = value
+        self.caption = caption
+    }
+
+    public var body: some View {
+        GeometryReader { proxy in
+            let side = min(proxy.size.width, proxy.size.height)
+            Canvas { context, size in
+                let lineWidth = max(side * 0.09, 4)
+                let radius = (side - lineWidth) / 2
+                let center = CGPoint(x: size.width / 2, y: size.height / 2)
+
+                var track = Path()
+                track.addArc(center: center, radius: radius, startAngle: .degrees(0), endAngle: .degrees(360), clockwise: false)
+                context.stroke(track, with: .color(theme.track.color), lineWidth: lineWidth)
+
+                var angle = Angle.degrees(-90)
+                for segment in segments where segment.fraction > 0.002 {
+                    let end = angle + .degrees(360 * min(segment.fraction, 1))
+                    var arc = Path()
+                    arc.addArc(center: center, radius: radius, startAngle: angle, endAngle: end, clockwise: false)
+                    context.stroke(arc, with: .color(segment.color), style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
+                    angle = end
+                }
+            }
+            .overlay(
+                VStack(spacing: 0) {
+                    Text(value)
+                        .font(.system(size: side * 0.22, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(theme.textPrimary.color)
+                    Text(caption)
+                        .font(.system(size: max(side * 0.075, 9), weight: .semibold, design: .rounded))
+                        .kerning(1)
+                        .foregroundStyle(theme.textSecondary.color)
+                }
+            )
+            .frame(width: side, height: side)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .aspectRatio(1, contentMode: .fit)
+    }
+}
+
 /// Small full-circle progress ring (per-core displays).
 public struct MiniRing: View {
     @Environment(\.theme) private var theme

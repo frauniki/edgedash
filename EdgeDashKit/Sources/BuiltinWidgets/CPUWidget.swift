@@ -228,17 +228,7 @@ private struct CPUView: View {
     private var processRows: some View {
         VStack(alignment: .leading, spacing: 2) {
             ForEach(topProcesses, id: \.name) { process in
-                HStack {
-                    Text(process.name)
-                        .foregroundStyle(theme.textSecondary.color)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Spacer()
-                    Text(String(format: "%.1f%%", process.fraction * 100))
-                        .monospacedDigit()
-                        .foregroundStyle(theme.textPrimary.color)
-                }
-                .font(.system(size: 12, design: .rounded))
+                ProcessRow(name: process.name, value: String(format: "%.1f%%", process.fraction * 100))
             }
         }
     }

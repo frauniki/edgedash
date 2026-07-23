@@ -7,7 +7,7 @@ public struct MemoryWidget: WidgetDefinition {
     public struct Config: Codable, Sendable, DefaultInitializable {
         public var showBreakdown = true
         public var showSwap = true
-        public var showPressure = true
+        public var showPressureRing = true
         public var showProcesses = true
         public var processCount = 3
         public init() {}
@@ -21,9 +21,8 @@ public struct MemoryWidget: WidgetDefinition {
     ]
 
     public static func requiredMetrics(for config: Config) -> Set<MetricID> {
-        var ids: Set<MetricID> = [.memoryUsage]
-        if config.showBreakdown { ids.insert(.memoryBreakdown) }
-        if config.showPressure { ids.insert(.memoryPressure) }
+        var ids: Set<MetricID> = [.memoryUsage, .memoryBreakdown]
+        if config.showPressureRing { ids.formUnion([.memoryPressure, .memoryPressurePercent]) }
         if config.showProcesses { ids.insert(.topProcessesMemory) }
         return ids
     }
@@ -34,6 +33,7 @@ public struct MemoryWidget: WidgetDefinition {
             usage: context.hub.store(for: .memoryUsage),
             breakdown: context.hub.store(for: .memoryBreakdown),
             pressure: context.hub.store(for: .memoryPressure),
+            pressurePercent: context.hub.store(for: .memoryPressurePercent),
             processes: context.hub.store(for: .topProcessesMemory),
             size: context.size
         ))
@@ -50,8 +50,11 @@ private struct MemoryView: View {
     let usage: MetricStore
     let breakdown: MetricStore
     let pressure: MetricStore
+    let pressurePercent: MetricStore
     let processes: MetricStore
     let size: GridSize
+
+    // MARK: - Data
 
     private var fraction: Double {
         if case .scalar(let v)? = usage.latest { v } else { 0 }
@@ -61,102 +64,120 @@ private struct MemoryView: View {
         if case .composite(let v)? = breakdown.latest { v } else { [:] }
     }
 
-    private var accent: Color {
-        theme.gaugeColor(fraction, warn: 0.8, critical: 0.92).color
+    private var total: Double { max(details["total"] ?? 1, 1) }
+
+    /// Ring segments in iStat order: app / wired / compressed.
+    private var segments: [(fraction: Double, color: Color)] {
+        [
+            (fraction: (details["app"] ?? 0) / total, color: theme.accent.color),
+            (fraction: (details["wired"] ?? 0) / total, color: theme.critical.color),
+            (fraction: (details["compressed"] ?? 0) / total, color: theme.accentAlt.color),
+        ]
     }
 
-    private var percentText: String {
-        String(format: "%.0f%%", fraction * 100)
+    private var pressureFraction: Double {
+        if case .scalar(let v)? = pressurePercent.latest { v } else { 0 }
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if size.cols >= 2 || size.rows >= 2 {
-                WidgetTitle(text: "MEMORY", value: nil)
-                HStack(spacing: 18) {
-                    LabeledRing(fraction: fraction, color: accent, label: percentText)
-                    if config.showBreakdown {
-                        VStack(alignment: .leading, spacing: 4) {
-                            breakdownRows
-                            Spacer(minLength: 4)
-                            SparklineView(history: usage.history, maxValue: 1, color: accent)
-                                .frame(height: 36)
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                }
-                .frame(maxHeight: .infinity)
-            } else {
-                WidgetTitle(text: "MEMORY", value: nil)
-                LabeledRing(fraction: fraction, color: accent, label: percentText)
-            }
-        }
-        .padding(14)
-    }
-
-    @ViewBuilder private var breakdownRows: some View {
-        row("Used", details["used"])
-        row("App", details["app"])
-        row("Wired", details["wired"])
-        row("Compressed", details["compressed"])
-        if config.showSwap {
-            row("Swap", details["swapUsed"])
-        }
-        if config.showPressure, case .scalar(let level)? = pressure.latest {
-            HStack {
-                Text("Pressure").foregroundStyle(theme.textSecondary.color)
-                Spacer()
-                Text(Self.pressureLabel(level))
-                    .foregroundStyle(Self.pressureColor(level, theme: theme))
-            }
-            .font(.system(size: 14, design: .rounded))
-        }
-        if config.showProcesses, !topProcesses.isEmpty {
-            Divider().padding(.vertical, 2)
-            ForEach(topProcesses, id: \.name) { process in
-                HStack {
-                    Text(process.name)
-                        .foregroundStyle(theme.textSecondary.color)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                    Spacer()
-                    Text(Self.gib(process.bytes))
-                        .monospacedDigit()
-                        .foregroundStyle(theme.textPrimary.color)
-                }
-                .font(.system(size: 12, design: .rounded))
-            }
-        }
+    private var pressureColor: Color {
+        guard case .scalar(let level)? = pressure.latest else { return theme.accent.color }
+        return level >= 4 ? theme.critical.color : level >= 2 ? theme.warn.color : theme.accent.color
     }
 
     private var topProcesses: [(name: String, bytes: Double)] {
-        guard case .composite(let values)? = processes.latest else { return [] }
+        guard config.showProcesses, case .composite(let values)? = processes.latest else { return [] }
         return values.sorted { $0.value > $1.value }
             .prefix(max(1, config.processCount))
             .map { (name: $0.key, bytes: $0.value) }
     }
 
-    static func pressureLabel(_ level: Double) -> String {
-        level >= 4 ? "critical" : level >= 2 ? "warning" : "normal"
-    }
+    // MARK: - Layout
 
-    static func pressureColor(_ level: Double, theme: Theme) -> Color {
-        level >= 4 ? theme.critical.color : level >= 2 ? theme.warn.color : theme.accent.color
-    }
-
-    private func row(_ label: String, _ bytes: Double?) -> some View {
-        HStack {
-            Text(label)
-                .foregroundStyle(theme.textSecondary.color)
-            Spacer()
-            Text(bytes.map(Self.gib) ?? "—")
-                .monospacedDigit()
-                .foregroundStyle(theme.textPrimary.color)
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            WidgetTitle(text: "MEMORY", value: size.rows >= 2 ? nil : String(format: "%.0f%%", fraction * 100))
+            if size.rows >= 2 {
+                rings
+                if config.showBreakdown {
+                    legendRows
+                }
+                if !topProcesses.isEmpty {
+                    Divider().overlay(theme.track.color).padding(.vertical, 1)
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(topProcesses, id: \.name) { process in
+                            ProcessRow(name: process.name, value: Self.gib(process.bytes))
+                        }
+                    }
+                }
+                Spacer(minLength: 0)
+                if config.showSwap {
+                    swapMeter
+                }
+            } else if size.cols >= 2 {
+                HStack(spacing: 18) {
+                    SegmentedRing(
+                        segments: segments,
+                        value: String(format: "%.0f%%", fraction * 100),
+                        caption: "MEMORY"
+                    )
+                    if config.showBreakdown { legendRows }
+                }
+                .frame(maxHeight: .infinity)
+            } else {
+                LabeledRing(fraction: fraction, color: theme.accent.color, label: String(format: "%.0f%%", fraction * 100))
+            }
         }
-        .font(.system(size: 14, design: .rounded))
+        .padding(14)
     }
 
-    private static func gib(_ bytes: Double) -> String {
+    private var rings: some View {
+        HStack(spacing: 20) {
+            if config.showPressureRing {
+                SegmentedRing(
+                    segments: [(fraction: pressureFraction, color: pressureColor)],
+                    value: String(format: "%.0f%%", pressureFraction * 100),
+                    caption: "PRESSURE"
+                )
+            }
+            SegmentedRing(
+                segments: segments,
+                value: String(format: "%.0f%%", fraction * 100),
+                caption: "MEMORY"
+            )
+        }
+        .frame(maxHeight: 150)
+        .frame(maxWidth: .infinity)
+    }
+
+    private var legendRows: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            LegendRow(color: theme.accent.color, label: "App", value: Self.gib(details["app"] ?? 0))
+            LegendRow(color: theme.critical.color, label: "Wired", value: Self.gib(details["wired"] ?? 0))
+            LegendRow(color: theme.accentAlt.color, label: "Compressed", value: Self.gib(details["compressed"] ?? 0))
+            LegendRow(color: theme.textSecondary.color.opacity(0.5), label: "Free", value: Self.gib(details["free"] ?? 0))
+        }
+    }
+
+    private var swapMeter: some View {
+        let used = details["swapUsed"] ?? 0
+        let swapTotal = details["swapTotal"] ?? 0
+        return VStack(alignment: .leading, spacing: 3) {
+            HStack {
+                Text("Swap").foregroundStyle(theme.textSecondary.color)
+                Spacer()
+                Text("\(Self.gib(used)) / \(Self.gib(swapTotal))")
+                    .monospacedDigit()
+                    .foregroundStyle(theme.textPrimary.color)
+            }
+            .font(.system(size: 13, design: .rounded))
+            MeterBar(
+                fraction: swapTotal > 0 ? used / swapTotal : 0,
+                color: theme.accent.color
+            )
+        }
+    }
+
+    static func gib(_ bytes: Double) -> String {
         String(format: "%.1f GB", bytes / 1_073_741_824)
     }
 }
@@ -167,8 +188,8 @@ private struct MemoryConfigView: View {
     var body: some View {
         Form {
             Toggle("Breakdown", isOn: $config.showBreakdown)
+            Toggle("Pressure ring", isOn: $config.showPressureRing)
             Toggle("Swap", isOn: $config.showSwap)
-            Toggle("Memory pressure", isOn: $config.showPressure)
             Toggle("Top processes", isOn: $config.showProcesses)
             Stepper("Processes: \(config.processCount)", value: $config.processCount, in: 1...8)
         }
