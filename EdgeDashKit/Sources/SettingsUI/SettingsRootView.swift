@@ -66,7 +66,16 @@ public struct SettingsRootView: View {
         }
     }
 
-    @State private var pane: Pane = .dashboard
+    // Initial pane can be forced with `--pane <Name>` (dev hook for
+    // scripted UI screenshots alongside `--settings`).
+    @State private var pane: Pane = {
+        if let flag = CommandLine.arguments.firstIndex(of: "--pane"),
+           CommandLine.arguments.indices.contains(flag + 1),
+           let forced = Pane(rawValue: CommandLine.arguments[flag + 1]) {
+            return forced
+        }
+        return .dashboard
+    }()
 
     public init(deps: SettingsDependencies) {
         self.deps = deps
@@ -79,34 +88,40 @@ public struct SettingsRootView: View {
             }
             .navigationSplitViewColumnWidth(160)
         } detail: {
-            switch pane {
-            case .dashboard:
-                DashboardSettingsView(
-                    configStore: deps.configStore,
-                    registry: deps.registry,
-                    hub: deps.hub,
-                    services: deps.services
-                )
-            case .display:
-                DisplaySettingsView(
-                    configStore: deps.configStore,
-                    statusText: deps.statusText(),
-                    displayChoices: deps.displayChoices
-                )
-            case .touch:
-                TouchSettingsView(
-                    capture: deps.touchCapture(),
-                    router: deps.touchRouter,
-                    onRefresh: deps.onTouchRefresh
-                )
-            case .appearance:
-                AppearanceSettingsView(configStore: deps.configStore)
-            case .debug:
-                DebugMetricsView(hub: deps.hub, ids: deps.debugMetricIDs)
-            }
+            detailView
+                // Fills the otherwise-empty toolbar band above every pane.
+                .navigationTitle(pane.rawValue)
         }
-        .frame(minWidth: 760, minHeight: 460)
+        .frame(minWidth: 760, minHeight: 500)
         .onAppear { deps.onVisibilityChange(true) }
         .onDisappear { deps.onVisibilityChange(false) }
+    }
+
+    @ViewBuilder private var detailView: some View {
+        switch pane {
+        case .dashboard:
+            DashboardSettingsView(
+                configStore: deps.configStore,
+                registry: deps.registry,
+                hub: deps.hub,
+                services: deps.services
+            )
+        case .display:
+            DisplaySettingsView(
+                configStore: deps.configStore,
+                statusText: deps.statusText(),
+                displayChoices: deps.displayChoices
+            )
+        case .touch:
+            TouchSettingsView(
+                capture: deps.touchCapture(),
+                router: deps.touchRouter,
+                onRefresh: deps.onTouchRefresh
+            )
+        case .appearance:
+            AppearanceSettingsView(configStore: deps.configStore)
+        case .debug:
+            DebugMetricsView(hub: deps.hub, ids: deps.debugMetricIDs)
+        }
     }
 }

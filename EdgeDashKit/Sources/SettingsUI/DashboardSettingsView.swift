@@ -40,7 +40,9 @@ public struct DashboardSettingsView: View {
                 }
             }
             .padding(12)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // .top, not the default .center — centering opened a dead band
+            // above the miniature whenever the editor didn't claim all height.
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
         // Selection is per-page; a stale id from another page kept the
         // remove button disabled in a confusing way.
@@ -141,6 +143,7 @@ public struct DashboardSettingsView: View {
             inspector(page: page)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func placementList(page: DashboardPage) -> some View {
@@ -158,7 +161,7 @@ public struct DashboardSettingsView: View {
                 }
             }
             Divider()
-            HStack {
+            HStack(spacing: 8) {
                 addWidgetMenu(page: page)
                 Button {
                     removeSelectedPlacement(page: page)
@@ -191,6 +194,7 @@ public struct DashboardSettingsView: View {
             Image(systemName: "plus")
         }
         .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden) // match the plain +/− buttons beside it
         .fixedSize()
     }
 
