@@ -16,7 +16,8 @@ public struct NetworkWidget: WidgetDefinition {
     public static let displayName = "Network"
     public static let category = WidgetCategory.monitoring
     public static let supportedSizes = [
-        GridSize(cols: 2, rows: 1), GridSize(cols: 2, rows: 2), GridSize(cols: 4, rows: 2),
+        GridSize(cols: 1, rows: 1), GridSize(cols: 2, rows: 1),
+        GridSize(cols: 2, rows: 2), GridSize(cols: 4, rows: 2),
     ]
 
     public static func requiredMetrics(for config: Config) -> Set<MetricID> {
@@ -91,7 +92,11 @@ private struct NetworkView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
-            header
+            if size.cols == 1 {
+                compactHeader
+            } else {
+                header
+            }
             MirroredBarHistory(
                 pairs: pairs,
                 capacity: throughput.history.capacity,
@@ -111,6 +116,18 @@ private struct NetworkView: View {
         }
         .padding(14)
         .task(id: taskKey) { await refreshInfo() }
+    }
+
+    /// 1×1: rates stacked under the title — the wide header doesn't fit.
+    private var compactHeader: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("NETWORK")
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(theme.textSecondary.color)
+                .kerning(1.5)
+            rateColumn(value: rates.up, dot: theme.accentAlt.color, caption: "up")
+            rateColumn(value: rates.down, dot: theme.accent.color, caption: "down")
+        }
     }
 
     /// Big current-rate numbers with dot captions, iStat style.
