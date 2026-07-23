@@ -166,7 +166,10 @@ struct WallpaperBackground: View {
     @State private var loadedDate: Date?
 
     var body: some View {
-        Group {
+        // GeometryReader pins the view to the proposed size — a bare
+        // scaledToFill image would inflate the whole ZStack to the
+        // wallpaper's aspect ratio and blow up the dashboard layout.
+        GeometryReader { proxy in
             if let image {
                 Image(nsImage: image)
                     .resizable()
@@ -174,11 +177,12 @@ struct WallpaperBackground: View {
                     .blur(radius: radius, opaque: true)
                     // Overscan so blur sampling never darkens the edges.
                     .scaleEffect(1 + radius / 300)
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .clipped()
             } else {
                 Color.black
             }
         }
-        .clipped()
         .task(id: screen?.localizedName) { await watchWallpaper() }
     }
 
