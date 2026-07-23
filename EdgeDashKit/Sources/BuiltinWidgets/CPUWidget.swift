@@ -1,14 +1,16 @@
 import EdgeCore
 import EdgeMetrics
+import SMCBridge
 import SwiftUI
 import WidgetEngine
 
 public struct CPUWidget: WidgetDefinition {
     public struct Config: Codable, Sendable, DefaultInitializable {
-        public var showPerCore = true
-        public var showHistory = true
+        public var showPerCore = true          // per-core ring rows (E/P clusters)
+        public var showHistory = true          // stacked user/system histogram
         public var showLoadAverage = true
         public var showProcesses = true
+        public var showTemperature = true
         public var processCount = 4
         public var warnThreshold = 0.7
         public var criticalThreshold = 0.9
@@ -25,9 +27,10 @@ public struct CPUWidget: WidgetDefinition {
 
     public static func requiredMetrics(for config: Config) -> Set<MetricID> {
         var ids: Set<MetricID> = [.cpuUsage, .cpuBreakdown, .systemUptime]
-        if config.showPerCore { ids.insert(.cpuPerCore) }
+        if config.showPerCore { ids.formUnion([.cpuPerCore, .cpuTopology]) }
         if config.showLoadAverage { ids.insert(.cpuLoadAverage) }
         if config.showProcesses { ids.insert(.topProcessesCPU) }
+        if config.showTemperature { ids.insert(.temperatures) }
         return ids
     }
 
@@ -36,10 +39,12 @@ public struct CPUWidget: WidgetDefinition {
             config: config,
             usage: context.hub.store(for: .cpuUsage),
             perCore: context.hub.store(for: .cpuPerCore),
+            topology: context.hub.store(for: .cpuTopology),
             load: context.hub.store(for: .cpuLoadAverage),
             breakdown: context.hub.store(for: .cpuBreakdown),
             uptime: context.hub.store(for: .systemUptime),
             processes: context.hub.store(for: .topProcessesCPU),
+            temperatures: context.hub.store(for: .temperatures),
             size: context.size
         ))
     }
@@ -54,11 +59,15 @@ private struct CPUView: View {
     let config: CPUWidget.Config
     let usage: MetricStore
     let perCore: MetricStore
+    let topology: MetricStore
     let load: MetricStore
     let breakdown: MetricStore
     let uptime: MetricStore
     let processes: MetricStore
+    let temperatures: MetricStore
     let size: GridSize
+
+    // MARK: - Data
 
     private var fraction: Double {
         if case .scalar(let v)? = usage.latest { v } else { 0 }
@@ -68,11 +77,171 @@ private struct CPUView: View {
         if case .perCore(let v)? = perCore.latest { v } else { [] }
     }
 
+    /// (efficiency, performance) core slices; E cores come first in the array.
+    private var clusters: (e: [Double], p: [Double]) {
+        guard case .composite(let topo)? = topology.latest,
+              let eCount = topo["e"].map(Int.init), eCount > 0, cores.count > eCount else {
+            return (e: [], p: cores)
+        }
+        return (e: Array(cores.prefix(eCount)), p: Array(cores.dropFirst(eCount)))
+    }
+
+    private var split: (user: Double, system: Double)? {
+        guard case .composite(let values)? = breakdown.latest,
+              let user = values["user"], let system = values["system"] else { return nil }
+        return (user, system)
+    }
+
+    private var splitHistory: [(bottom: Double, top: Double)] {
+        breakdown.history.compactMap { point in
+            guard case .composite(let values) = point.value,
+                  let user = values["user"], let system = values["system"] else { return nil }
+            return (bottom: user, top: system)
+        }
+    }
+
+    private var cpuTemperature: Double? {
+        guard config.showTemperature, case .composite(let sensors)? = temperatures.latest else { return nil }
+        let dieTemps = sensors.filter { $0.key.localizedCaseInsensitiveContains("tdie") }
+        if !dieTemps.isEmpty { return dieTemps.values.max() }
+        return sensors.filter { $0.key.localizedCaseInsensitiveContains("cpu") }.values.max()
+    }
+
+    private var topProcesses: [(name: String, fraction: Double)] {
+        guard config.showProcesses, case .composite(let values)? = processes.latest else { return [] }
+        return values.sorted { $0.value > $1.value }
+            .prefix(max(1, config.processCount))
+            .map { (name: $0.key, fraction: $0.value) }
+    }
+
+    private var headerValue: String {
+        var text = String(format: "%.0f%%", fraction * 100)
+        if let temp = cpuTemperature {
+            text += String(format: "  %.0f°", temp)
+        }
+        return text
+    }
+
     private var accent: Color {
         theme.gaugeColor(fraction, warn: config.warnThreshold, critical: config.criticalThreshold).color
     }
 
-    private var infoLine1: String? {
+    // MARK: - Layout
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            WidgetTitle(text: "CPU", value: headerValue)
+            if size.rows >= 2 {
+                fullLayout
+            } else if size.cols >= 2 {
+                compactLayout
+            } else {
+                LabeledRing(fraction: fraction, color: accent, label: String(format: "%.0f%%", fraction * 100))
+            }
+        }
+        .padding(14)
+    }
+
+    /// 2×2 / 4×2: histogram + legend + core rings + processes + load line.
+    @ViewBuilder private var fullLayout: some View {
+        if config.showHistory {
+            StackedBarHistory(
+                pairs: splitHistory,
+                bottomColor: theme.accent.color,
+                topColor: theme.accentAlt.color
+            )
+            .frame(maxHeight: .infinity)
+            splitLegend
+        }
+        if config.showPerCore, !cores.isEmpty {
+            coreRings
+        }
+        if !topProcesses.isEmpty {
+            Divider().overlay(theme.track.color).padding(.vertical, 1)
+            processRows
+        }
+        if let bottomLine {
+            Text(bottomLine)
+                .font(.system(size: 12, design: .monospaced))
+                .foregroundStyle(theme.textSecondary.color)
+        }
+    }
+
+    /// 2×1: histogram + legend only.
+    @ViewBuilder private var compactLayout: some View {
+        if config.showHistory {
+            StackedBarHistory(
+                pairs: splitHistory,
+                bottomColor: theme.accent.color,
+                topColor: theme.accentAlt.color
+            )
+            .frame(maxHeight: .infinity)
+        }
+        splitLegend
+    }
+
+    private var splitLegend: some View {
+        HStack(spacing: 16) {
+            if let split {
+                LegendRow(color: theme.accent.color, label: "user", value: String(format: "%.0f%%", split.user * 100))
+                LegendRow(color: theme.accentAlt.color, label: "system", value: String(format: "%.0f%%", split.system * 100))
+            }
+        }
+    }
+
+    @ViewBuilder private var coreRings: some View {
+        let clusters = clusters
+        VStack(alignment: .leading, spacing: 5) {
+            if !clusters.e.isEmpty {
+                ringRow(clusters.e, color: theme.accentAlt.color)
+            }
+            ringRow(clusters.p, color: theme.accent.color)
+            HStack(spacing: 16) {
+                if !clusters.e.isEmpty {
+                    LegendRow(
+                        color: theme.accentAlt.color,
+                        label: "efficiency",
+                        value: String(format: "%.0f%%", average(clusters.e) * 100)
+                    )
+                }
+                LegendRow(
+                    color: theme.accent.color,
+                    label: "performance",
+                    value: String(format: "%.0f%%", average(clusters.p) * 100)
+                )
+            }
+        }
+    }
+
+    private func ringRow(_ values: [Double], color: Color) -> some View {
+        HStack(spacing: 7) {
+            ForEach(Array(values.enumerated()), id: \.offset) { _, value in
+                MiniRing(fraction: value, color: color)
+                    .frame(width: 22, height: 22)
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var processRows: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(topProcesses, id: \.name) { process in
+                HStack {
+                    Text(process.name)
+                        .foregroundStyle(theme.textSecondary.color)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer()
+                    Text(String(format: "%.1f%%", process.fraction * 100))
+                        .monospacedDigit()
+                        .foregroundStyle(theme.textPrimary.color)
+                }
+                .font(.system(size: 12, design: .rounded))
+            }
+        }
+    }
+
+    private var bottomLine: String? {
         var parts: [String] = []
         if config.showLoadAverage, case .composite(let values)? = load.latest,
            let l1 = values["1"], let l5 = values["5"], let l15 = values["15"] {
@@ -84,67 +253,8 @@ private struct CPUView: View {
         return parts.isEmpty ? nil : parts.joined(separator: "   ")
     }
 
-    private var infoLine2: String? {
-        guard case .composite(let values)? = breakdown.latest,
-              let user = values["user"], let system = values["system"] else { return nil }
-        return String(format: "user %.0f%%   sys %.0f%%", user * 100, system * 100)
-    }
-
-    private var topProcesses: [(name: String, fraction: Double)] {
-        guard config.showProcesses, case .composite(let values)? = processes.latest else { return [] }
-        return values.sorted { $0.value > $1.value }
-            .prefix(max(1, config.processCount))
-            .map { (name: $0.key, fraction: $0.value) }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            WidgetTitle(text: "CPU", value: percentText)
-            if size.rows >= 2 || size.cols >= 2 {
-                Group {
-                    if let infoLine1 { infoText(infoLine1) }
-                    if let infoLine2 { infoText(infoLine2) }
-                }
-                if config.showHistory {
-                    SparklineView(history: usage.history, maxValue: 1, color: accent)
-                        .frame(maxHeight: .infinity)
-                }
-                if size.rows >= 2, !topProcesses.isEmpty {
-                    VStack(alignment: .leading, spacing: 2) {
-                        ForEach(topProcesses, id: \.name) { process in
-                            HStack {
-                                Text(process.name)
-                                    .foregroundStyle(theme.textSecondary.color)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                                Spacer()
-                                Text(String(format: "%.1f%%", process.fraction * 100))
-                                    .monospacedDigit()
-                                    .foregroundStyle(theme.textPrimary.color)
-                            }
-                            .font(.system(size: 12, design: .rounded))
-                        }
-                    }
-                }
-                if config.showPerCore, !cores.isEmpty {
-                    CoreBars(cores: cores, color: accent)
-                        .frame(height: size.rows >= 2 ? 26 : 20)
-                }
-            } else {
-                LabeledRing(fraction: fraction, color: accent, label: percentText)
-            }
-        }
-        .padding(14)
-    }
-
-    private func infoText(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 12, design: .monospaced))
-            .foregroundStyle(theme.textSecondary.color)
-    }
-
-    private var percentText: String {
-        String(format: "%.0f%%", fraction * 100)
+    private func average(_ values: [Double]) -> Double {
+        values.isEmpty ? 0 : values.reduce(0, +) / Double(values.count)
     }
 
     static func uptimeText(_ seconds: Double) -> String {
@@ -160,9 +270,10 @@ private struct CPUConfigView: View {
 
     var body: some View {
         Form {
-            Toggle("Per-core bars", isOn: $config.showPerCore)
-            Toggle("History graph", isOn: $config.showHistory)
+            Toggle("User/system histogram", isOn: $config.showHistory)
+            Toggle("Per-core rings", isOn: $config.showPerCore)
             Toggle("Load average", isOn: $config.showLoadAverage)
+            Toggle("Temperature", isOn: $config.showTemperature)
             Toggle("Top processes", isOn: $config.showProcesses)
             Stepper("Processes: \(config.processCount)", value: $config.processCount, in: 1...8)
         }

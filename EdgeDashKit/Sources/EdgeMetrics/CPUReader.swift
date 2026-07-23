@@ -8,6 +8,7 @@ public extension MetricID {
     static let cpuLoadAverage = MetricID("cpu.loadavg") // composite 1/5/15
     static let cpuBreakdown = MetricID("cpu.breakdown") // composite user/system/idle 0–1
     static let systemUptime = MetricID("sys.uptime")    // scalar seconds
+    static let cpuTopology = MetricID("cpu.topology")   // composite e/p logical core counts
 }
 
 /// CPU utilization from host_processor_info tick deltas.
@@ -31,7 +32,14 @@ public final class CPUReader: MetricReader, @unchecked Sendable {
 
     public init() {}
 
-    public var provides: [MetricID] { [.cpuUsage, .cpuPerCore, .cpuLoadAverage, .cpuBreakdown, .systemUptime] }
+    /// Verified on M3 Max: perflevel0 = Performance, perflevel1 = Efficiency,
+    /// and host_processor_info orders EFFICIENCY cores first in the array.
+    private static let coreCounts: (e: Int, p: Int) = (
+        e: Int(Sysctl.value("hw.perflevel1.logicalcpu", default: Int32(0))),
+        p: Int(Sysctl.value("hw.perflevel0.logicalcpu", default: Int32(0)))
+    )
+
+    public var provides: [MetricID] { [.cpuUsage, .cpuPerCore, .cpuLoadAverage, .cpuBreakdown, .systemUptime, .cpuTopology] }
     public var cadence: MetricCadence { .everyTick }
 
     public func read() throws -> [MetricSample] {
@@ -52,6 +60,9 @@ public final class CPUReader: MetricReader, @unchecked Sendable {
             MetricSample(id: .cpuLoadAverage, value: .composite(["1": load[0], "5": load[1], "15": load[2]])),
             MetricSample(id: .cpuBreakdown, value: .composite(Self.breakdown(previous: previous, current: current))),
             MetricSample(id: .systemUptime, value: .scalar(Self.uptimeSeconds())),
+            MetricSample(id: .cpuTopology, value: .composite([
+                "e": Double(Self.coreCounts.e), "p": Double(Self.coreCounts.p),
+            ])),
         ]
     }
 

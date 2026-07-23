@@ -179,6 +179,105 @@ public struct CoreBars: View {
     }
 }
 
+/// iStat-style stacked bar histogram: two series stacked per sample
+/// (e.g. CPU user + system), rendered as vertical bars.
+public struct StackedBarHistory: View {
+    @Environment(\.theme) private var theme
+    let pairs: [(bottom: Double, top: Double)] // fractions of full height
+    var bottomColor: Color
+    var topColor: Color
+
+    public init(pairs: [(bottom: Double, top: Double)], bottomColor: Color, topColor: Color) {
+        self.pairs = pairs
+        self.bottomColor = bottomColor
+        self.topColor = topColor
+    }
+
+    public var body: some View {
+        Canvas { context, size in
+            guard !pairs.isEmpty else { return }
+            let gap: CGFloat = 1
+            let barW = max((size.width - gap * CGFloat(pairs.count - 1)) / CGFloat(pairs.count), 1)
+            for (i, pair) in pairs.enumerated() {
+                let x = CGFloat(i) * (barW + gap)
+                let bottomH = size.height * CGFloat(min(max(pair.bottom, 0), 1))
+                let topH = size.height * CGFloat(min(max(pair.top, 0), 1 - min(max(pair.bottom, 0), 1)))
+                if bottomH > 0.3 {
+                    context.fill(
+                        Path(CGRect(x: x, y: size.height - bottomH, width: barW, height: bottomH)),
+                        with: .color(bottomColor)
+                    )
+                }
+                if topH > 0.3 {
+                    context.fill(
+                        Path(CGRect(x: x, y: size.height - bottomH - topH, width: barW, height: topH)),
+                        with: .color(topColor)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/// Small full-circle progress ring (per-core displays).
+public struct MiniRing: View {
+    @Environment(\.theme) private var theme
+    let fraction: Double
+    var color: Color
+
+    public init(fraction: Double, color: Color) {
+        self.fraction = min(max(fraction, 0), 1)
+        self.color = color
+    }
+
+    public var body: some View {
+        Canvas { context, size in
+            let lineWidth = max(min(size.width, size.height) * 0.16, 2.5)
+            let radius = (min(size.width, size.height) - lineWidth) / 2
+            let center = CGPoint(x: size.width / 2, y: size.height / 2)
+
+            var track = Path()
+            track.addArc(center: center, radius: radius, startAngle: .degrees(0), endAngle: .degrees(360), clockwise: false)
+            context.stroke(track, with: .color(theme.track.color), lineWidth: lineWidth)
+
+            guard fraction > 0.01 else { return }
+            var progress = Path()
+            progress.addArc(
+                center: center, radius: radius,
+                startAngle: .degrees(-90), endAngle: .degrees(-90 + 360 * fraction),
+                clockwise: false
+            )
+            context.stroke(progress, with: .color(color), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+        }
+    }
+}
+
+/// "● label ........ value" legend row, iStat style.
+public struct LegendRow: View {
+    @Environment(\.theme) private var theme
+    let color: Color
+    let label: String
+    let value: String
+
+    public init(color: Color, label: String, value: String) {
+        self.color = color
+        self.label = label
+        self.value = value
+    }
+
+    public var body: some View {
+        HStack(spacing: 6) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text(label).foregroundStyle(theme.textSecondary.color)
+            Spacer()
+            Text(value)
+                .monospacedDigit()
+                .foregroundStyle(theme.textPrimary.color)
+        }
+        .font(.system(size: 13, design: .rounded))
+    }
+}
+
 /// Slim horizontal meter (temperature rows, fan speed) with themed track.
 public struct MeterBar: View {
     @Environment(\.theme) private var theme
