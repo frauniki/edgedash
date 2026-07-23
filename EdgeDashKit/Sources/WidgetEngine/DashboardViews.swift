@@ -19,8 +19,9 @@ public struct DashboardRootView: View {
     }
 
     public var body: some View {
+        let theme = BuiltinThemes.theme(for: config.themeID)
         ZStack {
-            Color.black
+            theme.pageBackground.color
             if let page = activePage {
                 DashboardPageView(page: page, registry: registry, hub: hub)
                     .id(page.id)
@@ -31,12 +32,13 @@ public struct DashboardRootView: View {
             } else {
                 Text("No pages configured")
                     .font(.title3)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.textSecondary.color)
             }
         }
         .animation(.easeInOut(duration: 0.18), value: activePage?.id)
         .ignoresSafeArea()
         .colorScheme(.dark)
+        .environment(\.theme, theme)
     }
 
     private func pageIndex(of page: DashboardPage) -> Int {
@@ -97,8 +99,9 @@ public struct DashboardPageView: View {
     }
 }
 
-/// Shared widget frame: dark surface, rounded corners, hairline stroke.
+/// Shared widget frame: gradient surface with a top-lit hairline stroke.
 public struct WidgetChrome<Content: View>: View {
+    @Environment(\.theme) private var theme
     @ViewBuilder var content: Content
 
     public init(@ViewBuilder content: () -> Content) {
@@ -106,22 +109,18 @@ public struct WidgetChrome<Content: View>: View {
     }
 
     public var body: some View {
+        let shape = RoundedRectangle(cornerRadius: theme.cornerRadius, style: .continuous)
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color(white: 0.09))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.08), lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background(shape.fill(theme.surfaceGradient))
+            .overlay(shape.strokeBorder(theme.strokeGradient, lineWidth: 1))
+            .clipShape(shape)
     }
 }
 
 /// Placeholder for removed/unavailable widget types — never fails the page.
 struct UnknownWidgetView: View {
+    @Environment(\.theme) private var theme
     let type: WidgetTypeID
 
     var body: some View {
@@ -131,11 +130,12 @@ struct UnknownWidgetView: View {
             Text(type.rawValue)
                 .font(.caption.monospaced())
         }
-        .foregroundStyle(.secondary)
+        .foregroundStyle(theme.textSecondary.color)
     }
 }
 
 struct PageDots: View {
+    @Environment(\.theme) private var theme
     let count: Int
     let active: Int
 
@@ -145,8 +145,9 @@ struct PageDots: View {
             HStack(spacing: 6) {
                 ForEach(0..<count, id: \.self) { index in
                     Circle()
-                        .fill(index == active ? Color.white.opacity(0.9) : Color.white.opacity(0.25))
+                        .fill(index == active ? theme.accent.color : theme.textSecondary.color.opacity(0.4))
                         .frame(width: 5, height: 5)
+                        .shadow(color: index == active ? theme.accent.color.opacity(0.8) : .clear, radius: 3)
                 }
             }
             .padding(.bottom, 5)

@@ -39,6 +39,7 @@ public struct CPUWidget: WidgetDefinition {
 }
 
 private struct CPUView: View {
+    @Environment(\.theme) private var theme
     let config: CPUWidget.Config
     let usage: MetricStore
     let perCore: MetricStore
@@ -53,7 +54,7 @@ private struct CPUView: View {
     }
 
     private var accent: Color {
-        GaugeColor.forFraction(fraction, warn: config.warnThreshold, critical: config.criticalThreshold)
+        theme.gaugeColor(fraction, warn: config.warnThreshold, critical: config.criticalThreshold).color
     }
 
     var body: some View {
@@ -74,7 +75,7 @@ private struct CPUView: View {
                         Text(percentText)
                             .font(.system(size: 22, weight: .semibold, design: .rounded))
                             .monospacedDigit()
-                            .foregroundStyle(.white)
+                            .foregroundStyle(theme.textPrimary.color)
                     )
             }
         }
@@ -99,6 +100,7 @@ private struct CPUConfigView: View {
 
 /// Common "TITLE          value" header line for monitoring widgets.
 struct WidgetTitle: View {
+    @Environment(\.theme) private var theme
     let text: String
     var value: String?
 
@@ -106,14 +108,14 @@ struct WidgetTitle: View {
         HStack(alignment: .firstTextBaseline) {
             Text(text)
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.textSecondary.color)
                 .kerning(1.5)
             Spacer()
             if let value {
                 Text(value)
                     .font(.system(size: 24, weight: .semibold, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(.white)
+                    .foregroundStyle(theme.textPrimary.color)
             }
         }
     }

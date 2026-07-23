@@ -112,10 +112,12 @@ public struct DashboardSettingsView: View {
             // miniature is the real page view, live data included.
             let reference = CGSize(width: 2560, height: 720)
             let scale = min(proxy.size.width / reference.width, proxy.size.height / reference.height)
+            let theme = BuiltinThemes.theme(for: config.themeID)
             ZStack {
-                Color.black
+                theme.pageBackground.color
                 DashboardPageView(page: page, registry: registry, hub: hub)
                     .environment(\.colorScheme, .dark)
+                    .environment(\.theme, theme)
             }
             .frame(width: reference.width, height: reference.height)
             .scaleEffect(scale, anchor: .topLeading)

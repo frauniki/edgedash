@@ -36,6 +36,7 @@ public struct MemoryWidget: WidgetDefinition {
 }
 
 private struct MemoryView: View {
+    @Environment(\.theme) private var theme
     let config: MemoryWidget.Config
     let usage: MetricStore
     let breakdown: MetricStore
@@ -50,7 +51,7 @@ private struct MemoryView: View {
     }
 
     private var accent: Color {
-        GaugeColor.forFraction(fraction, warn: 0.8, critical: 0.92)
+        theme.gaugeColor(fraction, warn: 0.8, critical: 0.92).color
     }
 
     var body: some View {
@@ -87,11 +88,11 @@ private struct MemoryView: View {
     private func row(_ label: String, _ bytes: Double?) -> some View {
         HStack {
             Text(label)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.textSecondary.color)
             Spacer()
             Text(bytes.map(Self.gib) ?? "—")
                 .monospacedDigit()
-                .foregroundStyle(.white)
+                .foregroundStyle(theme.textPrimary.color)
         }
         .font(.system(size: 13, design: .rounded))
     }

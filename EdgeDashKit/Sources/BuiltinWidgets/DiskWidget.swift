@@ -35,6 +35,7 @@ public struct DiskWidget: WidgetDefinition {
 }
 
 private struct DiskView: View {
+    @Environment(\.theme) private var theme
     let config: DiskWidget.Config
     let capacity: MetricStore
     let io: MetricStore
@@ -58,21 +59,21 @@ private struct DiskView: View {
             WidgetTitle(text: "DISK", value: String(format: "%.0f%%", fraction * 100))
             if size.cols >= 2 || size.rows >= 2 {
                 HStack(spacing: 14) {
-                    RingGauge(fraction: fraction, color: GaugeColor.forFraction(fraction, warn: 0.8, critical: 0.92))
+                    RingGauge(fraction: fraction, color: theme.gaugeColor(fraction, warn: 0.8, critical: 0.92).color)
                         .frame(maxWidth: 90)
                     VStack(alignment: .leading, spacing: 3) {
                         detailRow("Free", details["free"])
                         detailRow("Total", details["total"])
                         if config.showIO, let ioRates {
-                            ioRow("R", ioRates.read, .cyan)
-                            ioRow("W", ioRates.write, .orange)
+                            ioRow("R", ioRates.read, theme.accent.color)
+                            ioRow("W", ioRates.write, theme.accentAlt.color)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .frame(maxHeight: .infinity)
             } else {
-                RingGauge(fraction: fraction, color: GaugeColor.forFraction(fraction, warn: 0.8, critical: 0.92))
+                RingGauge(fraction: fraction, color: theme.gaugeColor(fraction, warn: 0.8, critical: 0.92).color)
             }
         }
         .padding(14)
@@ -80,18 +81,18 @@ private struct DiskView: View {
 
     private func detailRow(_ label: String, _ bytes: Double?) -> some View {
         HStack {
-            Text(label).foregroundStyle(.secondary)
+            Text(label).foregroundStyle(theme.textSecondary.color)
             Spacer()
             Text(bytes.map { String(format: "%.0f GB", $0 / 1_000_000_000) } ?? "—")
                 .monospacedDigit()
-                .foregroundStyle(.white)
+                .foregroundStyle(theme.textPrimary.color)
         }
         .font(.system(size: 13, design: .rounded))
     }
 
     private func ioRow(_ label: String, _ rate: Double, _ color: Color) -> some View {
         HStack {
-            Text(label).foregroundStyle(.secondary)
+            Text(label).foregroundStyle(theme.textSecondary.color)
             Spacer()
             Text(ByteRate.text(rate))
                 .monospacedDigit()

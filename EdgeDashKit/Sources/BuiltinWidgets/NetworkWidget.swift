@@ -34,6 +34,7 @@ public struct NetworkWidget: WidgetDefinition {
 }
 
 private struct NetworkView: View {
+    @Environment(\.theme) private var theme
     let config: NetworkWidget.Config
     let throughput: MetricStore
     let size: GridSize
@@ -62,23 +63,23 @@ private struct NetworkView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text("NETWORK")
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.textSecondary.color)
                     .kerning(1.5)
                 Spacer()
-                rateLabel("↓", rates.down, .cyan)
-                rateLabel("↑", rates.up, .purple)
+                rateLabel("↓", rates.down, theme.accent.color)
+                rateLabel("↑", rates.up, theme.accentAlt.color)
             }
             ZStack {
                 // Shared scale so up/down are visually comparable.
                 let top = max(downHistory.max() ?? 0, upHistory.max() ?? 0, 1)
-                SparklineView(values: downHistory, maxValue: top, color: .cyan)
-                SparklineView(values: upHistory, maxValue: top, color: .purple)
+                SparklineView(values: downHistory, maxValue: top, color: theme.accent.color)
+                SparklineView(values: upHistory, maxValue: top, color: theme.accentAlt.color)
             }
             .frame(maxHeight: .infinity)
             if config.showAddress, size.rows >= 2 {
                 Text(addressLine)
                     .font(.system(size: 12, design: .monospaced))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.textSecondary.color)
             }
         }
         .padding(14)

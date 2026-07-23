@@ -31,6 +31,7 @@ public struct FanWidget: WidgetDefinition {
 }
 
 private struct FanView: View {
+    @Environment(\.theme) private var theme
     let config: FanWidget.Config
     let fans: MetricStore
 
@@ -45,7 +46,7 @@ private struct FanView: View {
             if rows.isEmpty {
                 Text("No fans")
                     .font(.system(size: 13, design: .rounded))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.textSecondary.color)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 VStack(alignment: .leading, spacing: 4) {
@@ -63,13 +64,11 @@ private struct FanView: View {
         let fraction = min(row.rpm / max(config.maxRPM, 1), 1)
         return HStack(spacing: 8) {
             Text(row.name)
-                .foregroundStyle(.secondary)
-            ProgressView(value: fraction)
-                .progressViewStyle(.linear)
-                .tint(GaugeColor.forFraction(fraction, warn: 0.7, critical: 0.9))
+                .foregroundStyle(theme.textSecondary.color)
+            MeterBar(fraction: fraction, color: theme.gaugeColor(fraction, warn: 0.7, critical: 0.9).color)
             Text(String(format: "%.0f rpm", row.rpm))
                 .monospacedDigit()
-                .foregroundStyle(.white)
+                .foregroundStyle(theme.textPrimary.color)
                 .frame(width: 70, alignment: .trailing)
         }
         .font(.system(size: 12, design: .rounded))

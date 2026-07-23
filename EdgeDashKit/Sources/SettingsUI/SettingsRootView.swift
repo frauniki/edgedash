@@ -48,6 +48,7 @@ public struct SettingsRootView: View {
         case dashboard = "Dashboard"
         case display = "Display"
         case touch = "Touch"
+        case appearance = "Appearance"
         case debug = "Debug"
 
         var id: String { rawValue }
@@ -56,6 +57,7 @@ public struct SettingsRootView: View {
             case .dashboard: "rectangle.grid.2x2"
             case .display: "display"
             case .touch: "hand.tap"
+            case .appearance: "paintpalette"
             case .debug: "waveform.path.ecg"
             }
         }
@@ -89,6 +91,8 @@ public struct SettingsRootView: View {
                     router: deps.touchRouter,
                     onRefresh: deps.onTouchRefresh
                 )
+            case .appearance:
+                AppearanceSettingsView(configStore: deps.configStore)
             case .debug:
                 DebugMetricsView(hub: deps.hub, ids: deps.debugMetricIDs)
             }

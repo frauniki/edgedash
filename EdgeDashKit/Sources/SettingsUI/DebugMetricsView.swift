@@ -30,7 +30,7 @@ private struct MetricRow: View {
             Text(id.rawValue)
                 .font(.system(.body, design: .monospaced))
                 .frame(width: 140, alignment: .leading)
-            SparklineView(history: store.history)
+            SparklineView(history: store.history, color: .accentColor)
                 .frame(width: 160, height: 24)
             Spacer()
             Text(Self.format(store.latest))

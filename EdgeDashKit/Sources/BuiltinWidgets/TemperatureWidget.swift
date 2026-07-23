@@ -34,6 +34,7 @@ public struct TemperatureWidget: WidgetDefinition {
 }
 
 private struct TemperatureView: View {
+    @Environment(\.theme) private var theme
     let config: TemperatureWidget.Config
     let temps: MetricStore
 
@@ -71,20 +72,19 @@ private struct TemperatureView: View {
     }
 
     private func sensorRow(_ row: (name: String, celsius: Double)) -> some View {
-        HStack(spacing: 8) {
+        // 105 °C ≈ Apple Silicon throttle ceiling.
+        let fraction = min(row.celsius / 105, 1)
+        return HStack(spacing: 8) {
             Text(row.name)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.textSecondary.color)
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer()
-            // 105 °C ≈ Apple Silicon throttle ceiling.
-            ProgressView(value: min(row.celsius / 105, 1))
-                .progressViewStyle(.linear)
-                .tint(GaugeColor.forFraction(row.celsius / 105, warn: 0.75, critical: 0.9))
+            MeterBar(fraction: fraction, color: theme.gaugeColor(fraction, warn: 0.75, critical: 0.9).color)
                 .frame(width: 60)
             Text(degrees(row.celsius))
                 .monospacedDigit()
-                .foregroundStyle(.white)
+                .foregroundStyle(theme.textPrimary.color)
                 .frame(width: 52, alignment: .trailing)
         }
         .font(.system(size: 12, design: .rounded))
@@ -93,7 +93,7 @@ private struct TemperatureView: View {
     private var unavailable: some View {
         Text("Sensors unavailable")
             .font(.system(size: 13, design: .rounded))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(theme.textSecondary.color)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 

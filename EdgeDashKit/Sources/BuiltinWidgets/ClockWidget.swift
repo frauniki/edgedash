@@ -29,6 +29,7 @@ public struct ClockWidget: WidgetDefinition {
 }
 
 private struct ClockView: View {
+    @Environment(\.theme) private var theme
     let config: ClockWidget.Config
 
     var body: some View {
@@ -39,13 +40,13 @@ private struct ClockView: View {
                     .monospacedDigit()
                     .minimumScaleFactor(0.2)
                     .lineLimit(1)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(theme.textPrimary.color)
                 if config.showDate {
                     Text(dateString(timeline.date))
                         .font(.system(size: 20, weight: .regular, design: .rounded))
                         .minimumScaleFactor(0.4)
                         .lineLimit(1)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(theme.textSecondary.color)
                 }
             }
             .padding(12)

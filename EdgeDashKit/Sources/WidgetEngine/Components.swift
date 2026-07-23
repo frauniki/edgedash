@@ -2,20 +2,22 @@ import EdgeCore
 import SwiftUI
 
 /// Shared drawing components for widgets. Canvas-based — no Swift Charts on
-/// the per-second hot path.
+/// the per-second hot path. Track colors and glow come from the theme; the
+/// data color is passed by the widget (it encodes meaning: accent, warn…).
 
 public struct SparklineView: View {
+    @Environment(\.theme) private var theme
     let values: [Double]
     var maxValue: Double?
     var color: Color
 
-    public init(history: RingBuffer<MetricPoint>, maxValue: Double? = nil, color: Color = .cyan) {
+    public init(history: RingBuffer<MetricPoint>, maxValue: Double? = nil, color: Color) {
         self.values = history.compactMap { Self.scalarize($0.value) }
         self.maxValue = maxValue
         self.color = color
     }
 
-    public init(values: [Double], maxValue: Double? = nil, color: Color = .cyan) {
+    public init(values: [Double], maxValue: Double? = nil, color: Color) {
         self.values = values
         self.maxValue = maxValue
         self.color = color
@@ -42,11 +44,20 @@ public struct SparklineView: View {
             fill.closeSubpath()
 
             context.fill(fill, with: .linearGradient(
-                Gradient(colors: [color.opacity(0.25), color.opacity(0.02)]),
+                Gradient(colors: [color.opacity(0.30), color.opacity(0.02)]),
                 startPoint: .zero,
                 endPoint: CGPoint(x: 0, y: size.height)
             ))
-            context.stroke(line, with: .color(color), lineWidth: 1.5)
+            if theme.glowStrength > 0 {
+                var glowContext = context
+                glowContext.addFilter(.shadow(
+                    color: color.opacity(theme.glowStrength),
+                    radius: 4
+                ))
+                glowContext.stroke(line, with: .color(color), lineWidth: 1.5)
+            } else {
+                context.stroke(line, with: .color(color), lineWidth: 1.5)
+            }
         }
     }
 
@@ -60,19 +71,20 @@ public struct SparklineView: View {
     }
 }
 
-/// Circular utilization gauge: 270° arc with a colored progress stroke.
+/// Circular utilization gauge: 270° arc, gradient progress stroke with glow.
 public struct RingGauge: View {
+    @Environment(\.theme) private var theme
     let fraction: Double
     var color: Color
 
-    public init(fraction: Double, color: Color = .cyan) {
+    public init(fraction: Double, color: Color) {
         self.fraction = min(max(fraction, 0), 1)
         self.color = color
     }
 
     public var body: some View {
         Canvas { context, size in
-            let lineWidth = max(size.width * 0.08, 4)
+            let lineWidth = max(min(size.width, size.height) * 0.10, 4)
             let radius = (min(size.width, size.height) - lineWidth) / 2
             let center = CGPoint(x: size.width / 2, y: size.height / 2)
             let start = Angle.degrees(135)
@@ -80,22 +92,34 @@ public struct RingGauge: View {
 
             var track = Path()
             track.addArc(center: center, radius: radius, startAngle: start, endAngle: start + full, clockwise: false)
-            context.stroke(track, with: .color(.white.opacity(0.1)), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+            context.stroke(track, with: .color(theme.track.color), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
 
-            guard fraction > 0 else { return }
+            guard fraction > 0.001 else { return }
             var progress = Path()
             progress.addArc(center: center, radius: radius, startAngle: start, endAngle: start + full * fraction, clockwise: false)
-            context.stroke(progress, with: .color(color), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+            let shading = GraphicsContext.Shading.conicGradient(
+                Gradient(colors: [color.opacity(0.55), color]),
+                center: center,
+                angle: start
+            )
+            if theme.glowStrength > 0 {
+                var glowContext = context
+                glowContext.addFilter(.shadow(color: color.opacity(theme.glowStrength * 0.9), radius: 5))
+                glowContext.stroke(progress, with: shading, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+            } else {
+                context.stroke(progress, with: shading, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+            }
         }
     }
 }
 
 /// Compact per-core utilization bars.
 public struct CoreBars: View {
+    @Environment(\.theme) private var theme
     let cores: [Double]
     var color: Color
 
-    public init(cores: [Double], color: Color = .cyan) {
+    public init(cores: [Double], color: Color) {
         self.cores = cores
         self.color = color
     }
@@ -108,20 +132,47 @@ public struct CoreBars: View {
             for (i, v) in cores.enumerated() {
                 let x = CGFloat(i) * (barW + gap)
                 let track = Path(roundedRect: CGRect(x: x, y: 0, width: barW, height: size.height), cornerRadius: 1.5)
-                context.fill(track, with: .color(.white.opacity(0.1)))
+                context.fill(track, with: .color(theme.track.color))
                 let h = size.height * CGFloat(min(max(v, 0), 1))
-                if h > 0 {
+                if h > 0.5 {
                     let bar = Path(roundedRect: CGRect(x: x, y: size.height - h, width: barW, height: h), cornerRadius: 1.5)
-                    context.fill(bar, with: .color(color))
+                    context.fill(bar, with: .linearGradient(
+                        Gradient(colors: [color, color.opacity(0.6)]),
+                        startPoint: CGPoint(x: 0, y: 0),
+                        endPoint: CGPoint(x: 0, y: size.height)
+                    ))
                 }
             }
         }
     }
 }
 
-/// Threshold → color mapping shared by gauges.
-public enum GaugeColor {
-    public static func forFraction(_ fraction: Double, warn: Double = 0.7, critical: Double = 0.9) -> Color {
-        fraction >= critical ? .red : fraction >= warn ? .orange : .cyan
+/// Slim horizontal meter (temperature rows, fan speed) with themed track.
+public struct MeterBar: View {
+    @Environment(\.theme) private var theme
+    let fraction: Double
+    var color: Color
+
+    public init(fraction: Double, color: Color) {
+        self.fraction = min(max(fraction, 0), 1)
+        self.color = color
+    }
+
+    public var body: some View {
+        Canvas { context, size in
+            let radius = size.height / 2
+            let track = Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: radius)
+            context.fill(track, with: .color(theme.track.color))
+            let width = size.width * CGFloat(fraction)
+            if width > 1 {
+                let bar = Path(roundedRect: CGRect(x: 0, y: 0, width: width, height: size.height), cornerRadius: radius)
+                context.fill(bar, with: .linearGradient(
+                    Gradient(colors: [color.opacity(0.65), color]),
+                    startPoint: .zero,
+                    endPoint: CGPoint(x: size.width, y: 0)
+                ))
+            }
+        }
+        .frame(height: 5)
     }
 }

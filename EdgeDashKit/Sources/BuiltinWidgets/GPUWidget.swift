@@ -36,6 +36,7 @@ public struct GPUWidget: WidgetDefinition {
 }
 
 private struct GPUView: View {
+    @Environment(\.theme) private var theme
     let config: GPUWidget.Config
     let usage: MetricStore
     let memory: MetricStore
@@ -46,7 +47,7 @@ private struct GPUView: View {
     }
 
     private var accent: Color {
-        GaugeColor.forFraction(fraction)
+        theme.gaugeColor(fraction).color
     }
 
     var body: some View {
@@ -61,7 +62,7 @@ private struct GPUView: View {
                     Text(String(format: "MEM %.1f GB", bytes / 1_073_741_824))
                         .font(.system(size: 13, design: .rounded))
                         .monospacedDigit()
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(theme.textSecondary.color)
                 }
             } else {
                 RingGauge(fraction: fraction, color: accent)
