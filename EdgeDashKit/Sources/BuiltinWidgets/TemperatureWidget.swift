@@ -17,7 +17,8 @@ public struct TemperatureWidget: WidgetDefinition {
     public static let displayName = "Temperatures"
     public static let category = WidgetCategory.monitoring
     public static let supportedSizes = [
-        GridSize(cols: 1, rows: 2), GridSize(cols: 2, rows: 2), GridSize(cols: 4, rows: 2),
+        GridSize(cols: 1, rows: 1), GridSize(cols: 1, rows: 2),
+        GridSize(cols: 2, rows: 2), GridSize(cols: 4, rows: 2),
     ]
 
     public static func requiredMetrics(for config: Config) -> Set<MetricID> {
@@ -25,7 +26,7 @@ public struct TemperatureWidget: WidgetDefinition {
     }
 
     @MainActor public static func makeView(config: Config, context: WidgetContext) -> AnyView {
-        AnyView(TemperatureView(config: config, temps: context.hub.store(for: .temperatures)))
+        AnyView(TemperatureView(config: config, temps: context.hub.store(for: .temperatures), size: context.size))
     }
 
     @MainActor public static func makeConfigView(config: Binding<Config>, context: WidgetContext) -> AnyView {
@@ -37,6 +38,10 @@ private struct TemperatureView: View {
     @Environment(\.theme) private var theme
     let config: TemperatureWidget.Config
     let temps: MetricStore
+    let size: GridSize
+
+    /// The 1×1 cell is too narrow for name + meter + value; drop the meter.
+    private var showsMeter: Bool { size.cols > 1 || size.rows > 1 }
 
     private var rows: [(name: String, celsius: Double)] {
         guard case .composite(let sensors)? = temps.latest else { return [] }
@@ -80,8 +85,10 @@ private struct TemperatureView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer()
-            MeterBar(fraction: fraction, color: theme.gaugeColor(fraction, warn: 0.75, critical: 0.9).color)
-                .frame(width: 60)
+            if showsMeter {
+                MeterBar(fraction: fraction, color: theme.gaugeColor(fraction, warn: 0.75, critical: 0.9).color)
+                    .frame(width: 60)
+            }
             Text(degrees(row.celsius))
                 .monospacedDigit()
                 .foregroundStyle(theme.textPrimary.color)
