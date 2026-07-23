@@ -21,6 +21,12 @@ targets:
     dependencies:
       - package: EdgeDashKit
         product: EdgeDashKit
+    entitlements:
+      path: EdgeDash/EdgeDash.entitlements
+      properties:
+        # Hardened runtime blocks outgoing Apple Events without this — the
+        # Automation TCC prompt never even appears.
+        com.apple.security.automation.apple-events: true
     info:
       path: EdgeDash/Info.plist
       properties:
