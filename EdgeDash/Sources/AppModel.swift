@@ -32,7 +32,7 @@ import WidgetEngine
         .memoryUsage, .memoryBreakdown, .memoryPressure,
         .gpuUsage, .gpuMemory, .networkThroughput,
         .diskCapacity, .diskIO, .temperatures, .fans,
-        .systemPower, .cpuBreakdown, .systemUptime,
+        .systemPower, .cpuClock, .cpuBreakdown, .systemUptime,
         .topProcessesCPU, .topProcessesMemory,
     ]
 
@@ -60,6 +60,7 @@ import WidgetEngine
             await engine.register(SMCTemperatureReader())
             await engine.register(SMCFanReader())
             await engine.register(SMCPowerReader())
+            await engine.register(CoreClockReader())
             await engine.register(ProcessReader())
             await engine.start(publishingTo: hub)
         }

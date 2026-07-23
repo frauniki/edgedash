@@ -1,3 +1,4 @@
+import Foundation
 @testable import SMCBridge
 import Testing
 
@@ -26,6 +27,19 @@ import Testing
         #expect(!sensors.isEmpty, "expected AppleVendor temperature sensors on Apple Silicon")
         // Sanity: values in plausible range already filtered; at least one > 10 °C.
         #expect(sensors.values.contains { $0 > 10 })
+    }
+
+    @Test func liveCoreClockSecondReadHasFrequencies() throws {
+        let reader = CoreClockReader()
+        _ = try reader.read() // seed sample
+        usleep(300_000)
+        let samples = try reader.read()
+        // IOReport is private API — absence is acceptable, garbage is not.
+        if case .composite(let values)? = samples.first?.value {
+            #expect(values["pMax"] ?? 0 > 1000) // > 1 GHz top state
+            #expect(values["e"] ?? -1 >= 0)
+            #expect((values["p"] ?? 0) <= (values["pMax"] ?? 0) * 1.01)
+        }
     }
 
     @Test func liveFanReadout() throws {
