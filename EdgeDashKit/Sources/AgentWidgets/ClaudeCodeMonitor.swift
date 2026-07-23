@@ -7,10 +7,16 @@ import Observation
 @MainActor @Observable public final class ClaudeCodeMonitor {
     public private(set) var sessions: [AgentSession] = []
     public private(set) var todayTotals = TokenTotals()
+    /// Plan rate-limit windows (5h/weekly); nil until fetched or when the
+    /// keychain/API is unavailable.
+    public private(set) var usage: UsageLimits?
 
     private let scanner: ClaudeSessionScanner
+    private let usageFetcher = ClaudeUsageFetcher()
     private let interval: Duration
+    private let usageInterval: TimeInterval = 300
     private var pollTask: Task<Void, Never>?
+    private var lastUsageFetch = Date.distantPast
 
     public init(root: URL? = nil, interval: Duration = .seconds(5)) {
         scanner = ClaudeSessionScanner(root: root)
@@ -26,6 +32,7 @@ import Observation
                     guard !Task.isCancelled else { return }
                     sessions = snapshot.sessions
                     todayTotals = snapshot.todayTotals
+                    await refreshUsageIfStale()
                     try? await Task.sleep(for: interval)
                 }
             }
@@ -33,5 +40,14 @@ import Observation
             pollTask?.cancel()
             pollTask = nil
         }
+    }
+
+    private func refreshUsageIfStale() async {
+        guard Date().timeIntervalSince(lastUsageFetch) > usageInterval else { return }
+        lastUsageFetch = Date()
+        if let fetched = await usageFetcher.fetch() {
+            usage = fetched
+        }
+        // Keep the last good value on transient failures; it beats flapping.
     }
 }

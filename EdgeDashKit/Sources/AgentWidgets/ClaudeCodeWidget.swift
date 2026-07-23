@@ -10,11 +10,12 @@ public struct ClaudeCodeWidget: WidgetDefinition {
         public var showTokens = true
         public var showTitles = true
         public var showBranch = true
+        public var showLimits = true
         public init() {}
 
         // Lenient decoding: adding fields must not reset saved configs.
         private enum CodingKeys: String, CodingKey {
-            case windowHours, maxRows, showTokens, showTitles, showBranch
+            case windowHours, maxRows, showTokens, showTitles, showBranch, showLimits
         }
 
         public init(from decoder: Decoder) throws {
@@ -24,6 +25,7 @@ public struct ClaudeCodeWidget: WidgetDefinition {
             showTokens = try container.decodeIfPresent(Bool.self, forKey: .showTokens) ?? true
             showTitles = try container.decodeIfPresent(Bool.self, forKey: .showTitles) ?? true
             showBranch = try container.decodeIfPresent(Bool.self, forKey: .showBranch) ?? true
+            showLimits = try container.decodeIfPresent(Bool.self, forKey: .showLimits) ?? true
         }
     }
 
@@ -71,6 +73,9 @@ private struct ClaudeCodeView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             WidgetTitle(text: "CLAUDE CODE", value: "\(workingCount)")
+            if config.showLimits, let usage = monitor.usage {
+                limitRows(usage)
+            }
             if visibleSessions.isEmpty {
                 Text("No recent sessions")
                     .font(.system(size: 12, design: .rounded))
@@ -166,6 +171,50 @@ private struct ClaudeCodeView: View {
         }
     }
 
+    /// CodexBar-style plan limit bars: 5h session window + weekly (+ scoped).
+    private func limitRows(_ usage: UsageLimits) -> some View {
+        VStack(spacing: 3) {
+            limitRow("5h", usage.session)
+            limitRow("7d", usage.weeklyAll)
+            if size.rows >= 2 {
+                limitRow(usage.weeklyScoped?.label.map(shortScope) ?? "7d·", usage.weeklyScoped)
+            }
+        }
+    }
+
+    @ViewBuilder private func limitRow(_ label: String, _ window: UsageLimits.Window?) -> some View {
+        if let window {
+            let fraction = min(max(window.percent / 100, 0), 1)
+            HStack(spacing: 6) {
+                Text(label)
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundStyle(theme.textSecondary.color)
+                    .frame(width: size.cols == 1 ? 18 : 34, alignment: .leading)
+                    .lineLimit(1)
+                MeterBar(fraction: fraction, color: theme.gaugeColor(fraction, warn: 0.7, critical: 0.9).color)
+                Text(String(format: "%.0f%%", window.percent))
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(theme.textPrimary.color)
+                    .frame(width: 30, alignment: .trailing)
+                if size.cols >= 2, let resets = window.resetsAt {
+                    Text("→\(Self.resetText(resets))")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(theme.textSecondary.color)
+                }
+            }
+        }
+    }
+
+    private func shortScope(_ label: String) -> String {
+        "7d·" + (label.hasPrefix("claude-") ? String(label.dropFirst("claude-".count)) : label)
+    }
+
+    static func resetText(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = date.timeIntervalSinceNow < 24 * 3600 ? "HH:mm" : "M/d"
+        return formatter.string(from: date)
+    }
+
     private var totalsLine: some View {
         let totals = monitor.todayTotals
         return Text("today  ↓\(TokenTotals.text(totals.input))  ↑\(TokenTotals.text(totals.output))  ·  \(totals.sessions) sessions")
@@ -237,6 +286,7 @@ private struct ClaudeCodeConfigView: View {
                 Slider(value: $config.windowHours, in: 1...24, step: 1)
             }
             Stepper("Rows: \(config.maxRows)", value: $config.maxRows, in: 1...12)
+            Toggle("Plan limits (5h/weekly)", isOn: $config.showLimits)
             Toggle("Today's tokens", isOn: $config.showTokens)
             Toggle("Session titles", isOn: $config.showTitles)
             Toggle("Git branch", isOn: $config.showBranch)
