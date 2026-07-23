@@ -17,12 +17,15 @@ public struct WeatherWidget: WidgetDefinition {
         public var mode: Mode = .auto
         public var place: Place?
         public var fahrenheit = false
+        /// 1×1 squeezes the weekly list in under a small current-conditions
+        /// row; off restores the big-temperature layout.
+        public var compactWeekly = true
 
         public init() {}
 
         // Lenient decoding: adding fields must not reset saved configs, and
         // an unknown mode string degrades to .auto instead of throwing.
-        private enum CodingKeys: String, CodingKey { case mode, place, fahrenheit }
+        private enum CodingKeys: String, CodingKey { case mode, place, fahrenheit, compactWeekly }
 
         public init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -30,6 +33,7 @@ public struct WeatherWidget: WidgetDefinition {
                 .flatMap(Mode.init(rawValue:)) ?? .auto
             place = try? container.decodeIfPresent(Place.self, forKey: .place)
             fahrenheit = (try? container.decodeIfPresent(Bool.self, forKey: .fahrenheit)) ?? false
+            compactWeekly = (try? container.decodeIfPresent(Bool.self, forKey: .compactWeekly)) ?? true
         }
     }
 
@@ -134,26 +138,44 @@ private struct WeatherView: View {
         }
     }
 
-    /// 1×1: icon + big temperature + today's range.
-    private func compactLayout(_ snapshot: WeatherSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            WidgetTitle(text: "WEATHER")
-            Spacer(minLength: 0)
-            HStack(spacing: 10) {
-                conditionIcon(snapshot.current, points: 38)
-                Text(degrees(snapshot.current.temperature))
-                    .font(.system(size: 40, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(theme.textPrimary.color)
+    /// 1×1: weekly list under a small current row, or (compactWeekly off)
+    /// icon + big temperature + today's range.
+    @ViewBuilder private func compactLayout(_ snapshot: WeatherSnapshot) -> some View {
+        if config.compactWeekly {
+            VStack(alignment: .leading, spacing: 6) {
+                WidgetTitle(text: title)
+                HStack(spacing: 8) {
+                    conditionIcon(snapshot.current, points: 22)
+                    Text(degrees(snapshot.current.temperature))
+                        .font(.system(size: 24, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(theme.textPrimary.color)
+                    Spacer(minLength: 0)
+                    highLow(snapshot)
+                }
+                dailyList(snapshot, compact: true)
             }
-            highLow(snapshot)
-            Text(spec?.label ?? "")
-                .font(.system(size: 12, design: .rounded))
-                .foregroundStyle(theme.textSecondary.color)
-                .lineLimit(1)
-            Spacer(minLength: 0)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            VStack(alignment: .leading, spacing: 4) {
+                WidgetTitle(text: "WEATHER")
+                Spacer(minLength: 0)
+                HStack(spacing: 10) {
+                    conditionIcon(snapshot.current, points: 38)
+                    Text(degrees(snapshot.current.temperature))
+                        .font(.system(size: 40, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(theme.textPrimary.color)
+                }
+                highLow(snapshot)
+                Text(spec?.label ?? "")
+                    .font(.system(size: 12, design: .rounded))
+                    .foregroundStyle(theme.textSecondary.color)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// 2×1: current block + five-day strip.
@@ -259,30 +281,34 @@ private struct WeatherView: View {
     }
 
     /// Weekly rows with a temperature-range bar spanning the week's extremes.
-    private func dailyList(_ snapshot: WeatherSnapshot) -> some View {
+    /// `compact` tightens every column for the 1×1 cell (and drops the
+    /// precipitation column — there is no width for it).
+    private func dailyList(_ snapshot: WeatherSnapshot, compact: Bool = false) -> some View {
         let weekLow = snapshot.daily.map(\.low).min() ?? 0
         let weekHigh = snapshot.daily.map(\.high).max() ?? 1
         return VStack(spacing: 0) {
             ForEach(Array(snapshot.daily.enumerated()), id: \.element.date) { index, day in
-                HStack(spacing: 8) {
+                HStack(spacing: compact ? 6 : 8) {
                     Text(index == 0 ? "Today" : day.weekday)
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .font(.system(size: compact ? 11 : 12, weight: .medium, design: .rounded))
                         .foregroundStyle(theme.textSecondary.color)
-                        .frame(width: 44, alignment: .leading)
+                        .frame(width: compact ? 38 : 44, alignment: .leading)
                     Image(systemName: WeatherCondition.symbol(code: day.code, isDay: true))
                         .symbolRenderingMode(.multicolor)
-                        .font(.system(size: 13))
-                        .frame(width: 22)
-                    Text(day.precipitationProbability >= 20 ? "\(Int(day.precipitationProbability))%" : "")
-                        .font(.system(size: 10, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(theme.accentAlt.color)
-                        .frame(width: 30, alignment: .leading)
+                        .font(.system(size: compact ? 12 : 13))
+                        .frame(width: compact ? 18 : 22)
+                    if !compact {
+                        Text(day.precipitationProbability >= 20 ? "\(Int(day.precipitationProbability))%" : "")
+                            .font(.system(size: 10, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(theme.accentAlt.color)
+                            .frame(width: 30, alignment: .leading)
+                    }
                     Text(degrees(day.low))
-                        .font(.system(size: 12, design: .rounded))
+                        .font(.system(size: compact ? 11 : 12, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(theme.textSecondary.color)
-                        .frame(width: 32, alignment: .trailing)
+                        .frame(width: compact ? 28 : 32, alignment: .trailing)
                     TempRangeBar(
                         low: day.low, high: day.high,
                         weekLow: weekLow, weekHigh: weekHigh,
@@ -290,10 +316,10 @@ private struct WeatherView: View {
                     )
                     .frame(height: 4)
                     Text(degrees(day.high))
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .font(.system(size: compact ? 11 : 12, weight: .medium, design: .rounded))
                         .monospacedDigit()
                         .foregroundStyle(theme.textPrimary.color)
-                        .frame(width: 32, alignment: .leading)
+                        .frame(width: compact ? 28 : 32, alignment: .leading)
                 }
                 .frame(maxHeight: .infinity)
             }
@@ -547,6 +573,7 @@ private struct WeatherConfigView: View {
                 }
             }
             Toggle("Fahrenheit", isOn: $config.fahrenheit)
+            Toggle("Weekly forecast in 1×1", isOn: $config.compactWeekly)
         }
     }
 
