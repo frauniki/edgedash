@@ -82,7 +82,10 @@ private struct ClaudeCodeView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
-            WidgetTitle(text: "CLAUDE CODE", value: "\(workingCount)")
+            WidgetTitle(
+                text: monitor.usage?.plan.map { "CLAUDE CODE · \($0.uppercased())" } ?? "CLAUDE CODE",
+                value: "\(workingCount)"
+            )
             if config.showLimits {
                 if let usage = monitor.usage {
                     limitRows(usage)
@@ -190,73 +193,68 @@ private struct ClaudeCodeView: View {
         }
     }
 
-    /// CodexBar-style plan limit bars: 5h session window + weekly (+ scoped),
-    /// with reset countdown and a depletion forecast when burning fast.
+    /// CodexBar-style plan limit bars: every window the API reports, with
+    /// remaining %, reset countdown, and shortfall forecast when burning fast.
     private func limitRows(_ usage: UsageLimits) -> some View {
-        VStack(spacing: 3) {
-            limitRow("5h", usage.session, forecast: monitor.forecasts.session)
-            limitRow("7d", usage.weeklyAll, forecast: monitor.forecasts.weeklyAll)
-            if size.rows >= 2 {
-                limitRow(
-                    usage.weeklyScoped?.label.map(shortScope) ?? "7d·",
-                    usage.weeklyScoped,
-                    forecast: monitor.forecasts.weeklyScoped
-                )
+        let windows = size.rows >= 2 ? usage.windows : Array(usage.windows.prefix(2))
+        return VStack(spacing: 3) {
+            ForEach(windows) { window in
+                limitRow(window, forecast: monitor.forecasts[window.id])
             }
         }
     }
 
-    @ViewBuilder private func limitRow(_ label: String, _ window: UsageLimits.Window?, forecast: TimeInterval?) -> some View {
-        if let window {
-            let fraction = min(max(window.percent / 100, 0), 1)
-            let untilReset = window.resetsAt.map { $0.timeIntervalSinceNow }
-            HStack(spacing: 6) {
-                Text(label)
-                    .font(.system(size: 10, weight: .medium, design: .rounded))
-                    .foregroundStyle(theme.textSecondary.color)
-                    .frame(width: size.cols == 1 ? 18 : 34, alignment: .leading)
-                    .lineLimit(1)
-                MeterBar(fraction: fraction, color: theme.gaugeColor(fraction, warn: 0.7, critical: 0.9).color)
-                Text(String(format: "%.0f%%", window.percent))
+    private func limitRow(_ window: UsageLimits.Window, forecast: ClaudeCodeMonitor.Forecast?) -> some View {
+        let fraction = min(max(window.percent / 100, 0), 1)
+        let untilReset = window.resetsAt.map { $0.timeIntervalSinceNow }
+        return HStack(spacing: 6) {
+            Text(window.label)
+                .font(.system(size: 10, weight: .medium, design: .rounded))
+                .foregroundStyle(theme.textSecondary.color)
+                .frame(width: size.cols == 1 ? 18 : (size.cols >= 4 ? 70 : 52), alignment: .leading)
+                .lineLimit(1)
+            MeterBar(fraction: fraction, color: theme.gaugeColor(fraction, warn: 0.7, critical: 0.9).color)
+            Text(String(format: "%.0f%% left", window.remaining))
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(theme.textPrimary.color)
+                .frame(width: 52, alignment: .trailing)
+            if size.cols >= 2, let untilReset, untilReset > 0 {
+                Text("→\(ClaudeCodeWidget.duration(untilReset))")
                     .font(.system(size: 10, design: .monospaced))
-                    .foregroundStyle(theme.textPrimary.color)
-                    .frame(width: 30, alignment: .trailing)
-                if size.cols >= 2, let untilReset, untilReset > 0 {
-                    Text("→\(ClaudeCodeWidget.duration(untilReset))")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(theme.textSecondary.color)
-                }
-                // Only warn when we'd hit the wall BEFORE the window resets.
-                if size.cols >= 2, let forecast, forecast < (untilReset ?? .infinity) {
-                    Text("⚠\(ClaudeCodeWidget.duration(forecast))")
-                        .font(.system(size: 10, design: .monospaced))
-                        .foregroundStyle(theme.warn.color)
-                }
+                    .foregroundStyle(theme.textSecondary.color)
+                    .frame(width: 48, alignment: .trailing)
+            }
+            // "4% short, dry in 1h48m" — only when the pace beats the reset.
+            if size.cols >= 2, let forecast, let short = forecast.shortfallPercent {
+                Text("⚠\(Int(short))%\(forecast.depletionIn.map { " " + ClaudeCodeWidget.duration($0) } ?? "")")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(theme.warn.color)
+                    .lineLimit(1)
             }
         }
     }
 
-    /// today/30d dollars + tokens + daily-cost line, from local transcripts
-    /// at API list rates (estimate, like CodexBar).
+    /// today/30d dollars + latest/30d tokens + top model + daily-cost bars,
+    /// from local transcripts at API list rates (estimate, like CodexBar).
     @ViewBuilder private var costStats: some View {
         let stats = monitor.stats
         VStack(alignment: .leading, spacing: 3) {
             HStack(spacing: 0) {
-                Text("today \(ModelPricing.dollars(stats.costToday)) · \(TokenTotals.text(stats.tokensToday)) tok")
+                Text("today \(ModelPricing.dollars(stats.costToday)) · latest \(TokenTotals.text(stats.latestSessionTokens))")
                 Spacer(minLength: 8)
-                Text("30d \(ModelPricing.dollars(stats.cost30d)) · \(TokenTotals.text(stats.tokens30d))")
+                Text("30d \(ModelPricing.dollars(stats.cost30d)) · \(TokenTotals.text(stats.tokens30d))\(stats.topModel.map { " · \(shortScope($0))" } ?? "")")
             }
             .font(.system(size: 11, design: .rounded))
             .monospacedDigit()
             .foregroundStyle(theme.textSecondary.color)
             .lineLimit(1)
-            SparklineView(values: stats.dailyCosts, capacity: 30, color: theme.accentAlt.color)
-                .frame(height: 20)
+            DailyCostBars(values: stats.dailyCosts, color: theme.accentAlt.color)
+                .frame(height: 24)
         }
     }
 
     private func shortScope(_ label: String) -> String {
-        "7d·" + (label.hasPrefix("claude-") ? String(label.dropFirst("claude-".count)) : label)
+        label.hasPrefix("claude-") ? String(label.dropFirst("claude-".count)) : label
     }
 
     static func failureText(_ failure: ClaudeUsageFetcher.Failure) -> String {
@@ -299,6 +297,41 @@ private struct ClaudeCodeView: View {
         case ..<60: return "now"
         case ..<3600: return "\(Int(seconds / 60))m"
         default: return "\(Int(seconds / 3600))h"
+        }
+    }
+}
+
+/// Daily cost bar chart (30 days, newest right) with a peak-dollar label —
+/// discrete daily buckets read better as bars than as a line.
+private struct DailyCostBars: View {
+    @Environment(\.theme) private var theme
+    let values: [Double]
+    let color: Color
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            Canvas { context, size in
+                guard let peak = values.max(), peak > 0 else { return }
+                let count = CGFloat(max(values.count, 1))
+                let gap: CGFloat = 2
+                let barWidth = max((size.width - gap * (count - 1)) / count, 1)
+                for (index, value) in values.enumerated() {
+                    let height = max(size.height * CGFloat(value / peak), value > 0 ? 1.5 : 0)
+                    guard height > 0 else { continue }
+                    let rect = CGRect(
+                        x: CGFloat(index) * (barWidth + gap),
+                        y: size.height - height,
+                        width: barWidth,
+                        height: height
+                    )
+                    context.fill(Path(roundedRect: rect, cornerRadius: 1), with: .color(color.opacity(0.85)))
+                }
+            }
+            if let peak = values.max(), peak > 0 {
+                Text(ModelPricing.dollars(peak))
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(theme.textSecondary.color)
+            }
         }
     }
 }

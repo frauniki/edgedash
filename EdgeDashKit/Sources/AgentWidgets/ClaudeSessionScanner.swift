@@ -139,11 +139,13 @@ public actor ClaudeSessionScanner {
             ))
         }
         sessions.sort { $0.lastActivity > $1.lastActivity }
-        return Snapshot(
-            sessions: sessions,
-            todayTotals: totals,
-            stats: UsageStats.build(byDayModel: byDayModel, now: now, dayKey: Self.dayKey)
-        )
+        var stats = UsageStats.build(byDayModel: byDayModel, now: now, dayKey: Self.dayKey)
+        if let latest = digests.values.max(by: { $0.mtime < $1.mtime }) {
+            stats.latestSessionTokens = latest.tokensByDay.values
+                .flatMap(\.values)
+                .reduce(0) { $0 + $1.total }
+        }
+        return Snapshot(sessions: sessions, todayTotals: totals, stats: stats)
     }
 
     // MARK: - Incremental reading

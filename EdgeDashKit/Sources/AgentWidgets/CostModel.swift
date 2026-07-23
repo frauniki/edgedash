@@ -61,6 +61,8 @@ public struct UsageStats: Sendable, Equatable {
     /// One entry per day, oldest → today (30 entries), estimated dollars.
     public var dailyCosts: [Double] = []
     public var topModel: String?
+    /// Total tokens of the most recently active session.
+    public var latestSessionTokens: Int = 0
 
     public init() {}
 

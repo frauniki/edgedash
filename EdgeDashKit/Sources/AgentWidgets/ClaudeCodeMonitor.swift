@@ -6,12 +6,13 @@ import os
 /// snapshot of sessions and today's token totals. Runs only while a page
 /// showing the widget is visible (same gating as metrics/music).
 @MainActor @Observable public final class ClaudeCodeMonitor {
-    /// Seconds until each window hits 100% at the observed burn rate; nil
-    /// while flat/cooling or with too little history.
-    public struct Forecasts: Sendable, Equatable {
-        public var session: TimeInterval?
-        public var weeklyAll: TimeInterval?
-        public var weeklyScoped: TimeInterval?
+    /// Burn-rate projection for one limit window.
+    public struct Forecast: Sendable, Equatable {
+        /// Seconds until 100% at the observed pace; nil while flat/cooling.
+        public var depletionIn: TimeInterval?
+        /// How many percent short the window comes up at reset, at the
+        /// current pace (positive = will run dry before the reset).
+        public var shortfallPercent: Double?
     }
 
     public private(set) var sessions: [AgentSession] = []
@@ -20,7 +21,8 @@ import os
     /// Plan rate-limit windows (5h/weekly); nil until fetched or when the
     /// keychain/API is unavailable.
     public private(set) var usage: UsageLimits?
-    public private(set) var forecasts = Forecasts()
+    /// Keyed by `UsageLimits.Window.id`.
+    public private(set) var forecasts: [String: Forecast] = [:]
     /// Why `usage` is nil, for the widget's hint row.
     public private(set) var usageFailure: ClaudeUsageFetcher.Failure?
 
@@ -76,30 +78,40 @@ import os
     }
 
     private func recordSamples(_ limits: UsageLimits, now: Date) {
-        func record(_ kind: String, _ window: UsageLimits.Window?) -> TimeInterval? {
-            guard let window else { return nil }
-            var history = samples[kind] ?? []
+        var updated: [String: Forecast] = [:]
+        for window in limits.windows {
+            var history = samples[window.id] ?? []
             // A drop means the window reset — old slope is meaningless.
             if let last = history.last, window.percent < last.1 { history = [] }
             history.append((now, window.percent))
             history.removeAll { now.timeIntervalSince($0.0) > 3600 }
-            samples[kind] = history
-            return Self.depletion(samples: history)
+            samples[window.id] = history
+
+            var forecast = Forecast()
+            forecast.depletionIn = Self.depletion(samples: history)
+            if let rate = Self.burnRate(samples: history), let resets = window.resetsAt {
+                let projected = rate * resets.timeIntervalSince(now)
+                let shortfall = projected - window.remaining
+                if shortfall > 0.5 { forecast.shortfallPercent = shortfall }
+            }
+            updated[window.id] = forecast
         }
-        forecasts = Forecasts(
-            session: record("session", limits.session),
-            weeklyAll: record("weekly_all", limits.weeklyAll),
-            weeklyScoped: record("weekly_scoped", limits.weeklyScoped)
-        )
+        forecasts = updated
+    }
+
+    /// Percent-per-second over the retained samples; nil while flat.
+    nonisolated static func burnRate(samples: [(Date, Double)]) -> Double? {
+        guard let first = samples.first, let last = samples.last else { return nil }
+        let elapsed = last.0.timeIntervalSince(first.0)
+        let risen = last.1 - first.1
+        guard elapsed > 60, risen > 0.5 else { return nil }
+        return risen / elapsed
     }
 
     /// Linear burn-rate projection over the retained samples.
     nonisolated static func depletion(samples: [(Date, Double)]) -> TimeInterval? {
-        guard let first = samples.first, let last = samples.last else { return nil }
-        let elapsed = last.0.timeIntervalSince(first.0)
-        let risen = last.1 - first.1
-        guard elapsed > 60, risen > 0.5, last.1 < 100 else { return nil }
-        return (100 - last.1) / (risen / elapsed)
+        guard let rate = burnRate(samples: samples), let last = samples.last, last.1 < 100 else { return nil }
+        return (100 - last.1) / rate
     }
 
     /// Settings/widget retry: forget the backoff and fetch on the next tick.
