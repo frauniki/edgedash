@@ -92,7 +92,7 @@ private struct FanConfigView: View {
     @Binding var config: FanWidget.Config
 
     var body: some View {
-        Form {
+        ConfigForm {
             Stepper(
                 "Max RPM: \(Int(config.maxRPM))",
                 value: $config.maxRPM,

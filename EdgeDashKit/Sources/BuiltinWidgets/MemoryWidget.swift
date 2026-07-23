@@ -197,7 +197,7 @@ private struct MemoryConfigView: View {
     @Binding var config: MemoryWidget.Config
 
     var body: some View {
-        Form {
+        ConfigForm {
             Toggle("Breakdown", isOn: $config.showBreakdown)
             Toggle("Pressure ring", isOn: $config.showPressureRing)
             Toggle("Swap", isOn: $config.showSwap)

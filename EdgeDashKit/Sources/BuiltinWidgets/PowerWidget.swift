@@ -61,7 +61,7 @@ private struct PowerConfigView: View {
     @Binding var config: PowerWidget.Config
 
     var body: some View {
-        Form {
+        ConfigForm {
             Toggle("History graph", isOn: $config.showHistory)
         }
     }

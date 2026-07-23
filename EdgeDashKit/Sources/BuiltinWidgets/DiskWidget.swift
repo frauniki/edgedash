@@ -160,7 +160,7 @@ private struct DiskConfigView: View {
     @State private var volumes: [(path: String, name: String)] = []
 
     var body: some View {
-        Form {
+        ConfigForm {
             Picker("Volume", selection: $config.volumePath) {
                 ForEach(volumes, id: \.path) { volume in
                     Text(volume.name).tag(volume.path)

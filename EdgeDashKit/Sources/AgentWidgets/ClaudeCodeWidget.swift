@@ -367,9 +367,15 @@ private struct ClaudeCodeConfigView: View {
     @Binding var config: ClaudeCodeWidget.Config
 
     var body: some View {
-        Form {
-            LabeledContent(String(format: "Window: %.0f h", config.windowHours)) {
-                Slider(value: $config.windowHours, in: 1...24, step: 1)
+        ConfigForm {
+            LabeledContent("Window") {
+                HStack(spacing: 8) {
+                    Slider(value: $config.windowHours, in: 1...24, step: 1)
+                    Text(String(format: "%.0f h", config.windowHours))
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                        .frame(width: 34, alignment: .trailing)
+                }
             }
             Stepper("Rows: \(config.maxRows)", value: $config.maxRows, in: 1...12)
             Toggle("Plan limits (5h/weekly)", isOn: $config.showLimits)

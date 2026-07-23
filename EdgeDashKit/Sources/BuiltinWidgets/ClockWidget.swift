@@ -73,7 +73,7 @@ private struct ClockConfigView: View {
     @Binding var config: ClockWidget.Config
 
     var body: some View {
-        Form {
+        ConfigForm {
             Toggle("24-hour", isOn: $config.is24Hour)
             Toggle("Show seconds", isOn: $config.showSeconds)
             Toggle("Show date", isOn: $config.showDate)

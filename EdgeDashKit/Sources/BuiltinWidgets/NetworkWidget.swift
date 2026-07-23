@@ -219,7 +219,7 @@ private struct NetworkConfigView: View {
     @Binding var config: NetworkWidget.Config
 
     var body: some View {
-        Form {
+        ConfigForm {
             Toggle("Interface / IP address", isOn: $config.showAddress)
             Toggle("IPv6 address", isOn: $config.showIPv6)
             Toggle("Public IP", isOn: $config.showPublicIP)

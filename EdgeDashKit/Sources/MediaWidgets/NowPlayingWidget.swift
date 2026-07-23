@@ -446,7 +446,7 @@ private struct NowPlayingConfigView: View {
     @Binding var config: NowPlayingWidget.Config
 
     var body: some View {
-        Form {
+        ConfigForm {
             Toggle("Artwork", isOn: $config.showArtwork)
             Toggle("Album name", isOn: $config.showAlbum)
             Toggle("Seek bar", isOn: $config.showSeekBar)

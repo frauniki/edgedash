@@ -75,7 +75,7 @@ private struct GPUConfigView: View {
     @Binding var config: GPUWidget.Config
 
     var body: some View {
-        Form {
+        ConfigForm {
             Toggle("History graph", isOn: $config.showHistory)
             Toggle("GPU memory", isOn: $config.showMemory)
         }

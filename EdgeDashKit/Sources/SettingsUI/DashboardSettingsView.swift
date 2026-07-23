@@ -47,6 +47,26 @@ public struct DashboardSettingsView: View {
         // Selection is per-page; a stale id from another page kept the
         // remove button disabled in a confusing way.
         .onChange(of: selectedPageID) { _, _ in selectedPlacementID = nil }
+        // Dev hook for scripted UI screenshots (alongside --settings/--pane):
+        // preselect the first placement whose type contains the argument, so
+        // the inspector can be captured without clicking.
+        .onAppear {
+            guard let flag = CommandLine.arguments.firstIndex(of: "--select-widget"),
+                  CommandLine.arguments.indices.contains(flag + 1) else { return }
+            let needle = CommandLine.arguments[flag + 1].lowercased()
+            for page in config.pages {
+                if let hit = page.placements.first(where: { $0.type.rawValue.lowercased().contains(needle) }) {
+                    selectedPageID = page.id
+                    // Next tick: the onChange above clears the placement
+                    // selection when the page id changes.
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(100))
+                        selectedPlacementID = hit.id
+                    }
+                    return
+                }
+            }
+        }
     }
 
     // MARK: - Page list
@@ -271,7 +291,8 @@ public struct DashboardSettingsView: View {
                         context: WidgetContext(hub: hub, size: placement.frame.size, services: services)
                     )
                 }
-                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
             }
         } else {
             ContentUnavailableView("Select a widget", systemImage: "slider.horizontal.3")
@@ -445,7 +466,7 @@ private struct PlacementGeometryEditor: View {
     var body: some View {
         Grid(alignment: .leading, verticalSpacing: 6) {
             GridRow {
-                Text("Position").foregroundStyle(.secondary).gridColumnAlignment(.leading)
+                Text("Position").foregroundStyle(.secondary).fixedSize().gridColumnAlignment(.leading)
                 stepper("Col", value: placement.frame.col, range: 0...(grid.cols - placement.frame.size.cols)) {
                     var frame = placement.frame; frame.col = $0; apply(frame)
                 }
@@ -454,7 +475,7 @@ private struct PlacementGeometryEditor: View {
                 }
             }
             GridRow {
-                Text("Size").foregroundStyle(.secondary)
+                Text("Size").foregroundStyle(.secondary).fixedSize()
                 sizePicker
             }
         }

@@ -232,8 +232,8 @@ private struct SensorsConfigView: View {
     }
 
     var body: some View {
-        Form {
-            Section("Sections") {
+        ConfigForm {
+            ConfigSection("Sections") {
                 Toggle("Core clock", isOn: $config.showCoreClock)
                 Toggle("Power", isOn: $config.showPower)
                 Toggle("Fans", isOn: $config.showFans)
@@ -241,7 +241,7 @@ private struct SensorsConfigView: View {
             }
             Stepper("Temperature rows: \(config.maxRows)", value: $config.maxRows, in: 1...12)
             Toggle("Fahrenheit", isOn: $config.fahrenheit)
-            Section("Temperature sensors") {
+            ConfigSection("Temperature sensors") {
                 Toggle("All sensors (hottest first)", isOn: Binding(
                     get: { config.sensorFilters.isEmpty },
                     set: { all in if all { config.sensorFilters = [] } }

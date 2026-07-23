@@ -288,7 +288,7 @@ private struct CPUConfigView: View {
     @Binding var config: CPUWidget.Config
 
     var body: some View {
-        Form {
+        ConfigForm {
             Toggle("User/system histogram", isOn: $config.showHistory)
             Toggle("Per-core rings", isOn: $config.showPerCore)
             Toggle("Load average", isOn: $config.showLoadAverage)
@@ -296,7 +296,7 @@ private struct CPUConfigView: View {
             Toggle("Temperature", isOn: $config.showTemperature)
             Toggle("Top processes", isOn: $config.showProcesses)
             Stepper("Processes: \(config.processCount)", value: $config.processCount, in: 1...8)
-            Section("Color thresholds") {
+            ConfigSection("Color thresholds") {
                 LabeledContent(String(format: "Warn at %.0f%%", config.warnThreshold * 100)) {
                     Slider(value: $config.warnThreshold, in: 0.3...0.95)
                 }

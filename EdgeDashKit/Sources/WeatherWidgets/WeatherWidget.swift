@@ -523,7 +523,7 @@ private struct WeatherConfigView: View {
     @State private var searchError: String?
 
     var body: some View {
-        Form {
+        ConfigForm {
             Picker("Location", selection: $config.mode) {
                 Text("Current location").tag(WeatherWidget.Config.Mode.auto)
                 Text("Fixed city").tag(WeatherWidget.Config.Mode.manual)
@@ -536,6 +536,7 @@ private struct WeatherConfigView: View {
                 }
             } else {
                 TextField("Search city", text: $query)
+                    .textFieldStyle(.roundedBorder)
                     .onSubmit(search)
                 if searching {
                     ProgressView().controlSize(.small)
