@@ -66,26 +66,57 @@ public struct DashboardPageView: View {
 
     public var body: some View {
         GeometryReader { proxy in
-            let inner = CGSize(
+            let grid = GridDimensions.forAspect(
                 width: proxy.size.width - Self.pageInset * 2,
                 height: proxy.size.height - Self.pageInset * 2
             )
-            let grid = GridDimensions.forAspect(width: inner.width, height: inner.height)
-            let cellW = inner.width / CGFloat(grid.cols)
-            let cellH = inner.height / CGFloat(grid.rows)
-
             ForEach(page.placements) { placement in
-                let frame = placement.frame
-                let width = cellW * CGFloat(frame.size.cols) - Self.gutter
-                let height = cellH * CGFloat(frame.size.rows) - Self.gutter
+                let rect = Self.cellRect(for: placement.frame, in: proxy.size, grid: grid)
                 widgetBody(for: placement)
-                    .frame(width: width, height: height)
-                    .position(
-                        x: Self.pageInset + cellW * (CGFloat(frame.col) + CGFloat(frame.size.cols) / 2),
-                        y: Self.pageInset + cellH * (CGFloat(frame.row) + CGFloat(frame.size.rows) / 2)
-                    )
+                    .frame(width: rect.width, height: rect.height)
+                    .position(x: rect.midX, y: rect.midY)
             }
         }
+    }
+
+    // MARK: - Grid geometry (shared with the settings miniature editor)
+
+    /// Cell pitch for a canvas; the widget rect is a span of cells minus the
+    /// gutter.
+    public static func cellSize(in canvas: CGSize, grid: GridDimensions) -> CGSize {
+        CGSize(
+            width: (canvas.width - pageInset * 2) / CGFloat(grid.cols),
+            height: (canvas.height - pageInset * 2) / CGFloat(grid.rows)
+        )
+    }
+
+    /// The exact rect the renderer gives a grid frame (canvas space).
+    public static func cellRect(for frame: GridRect, in canvas: CGSize, grid: GridDimensions) -> CGRect {
+        let cell = cellSize(in: canvas, grid: grid)
+        return CGRect(
+            x: pageInset + cell.width * CGFloat(frame.col) + gutter / 2,
+            y: pageInset + cell.height * CGFloat(frame.row) + gutter / 2,
+            width: cell.width * CGFloat(frame.size.cols) - gutter,
+            height: cell.height * CGFloat(frame.size.rows) - gutter
+        )
+    }
+
+    /// Nearest grid origin for a widget whose top-left corner is at `point`
+    /// (canvas space), clamped so `size` stays inside the grid. Inverse of
+    /// `cellRect`'s origin — used to snap drags.
+    public static func gridOrigin(
+        at point: CGPoint,
+        size: GridSize,
+        in canvas: CGSize,
+        grid: GridDimensions
+    ) -> (col: Int, row: Int) {
+        let cell = cellSize(in: canvas, grid: grid)
+        let col = Int((Double(point.x - pageInset - gutter / 2) / cell.width).rounded())
+        let row = Int((Double(point.y - pageInset - gutter / 2) / cell.height).rounded())
+        return (
+            col: min(max(col, 0), max(0, grid.cols - size.cols)),
+            row: min(max(row, 0), max(0, grid.rows - size.rows))
+        )
     }
 
     @ViewBuilder

@@ -42,6 +42,9 @@ public struct DashboardSettingsView: View {
             .padding(12)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        // Selection is per-page; a stale id from another page kept the
+        // remove button disabled in a confusing way.
+        .onChange(of: selectedPageID) { _, _ in selectedPlacementID = nil }
     }
 
     // MARK: - Page list
@@ -106,32 +109,25 @@ public struct DashboardSettingsView: View {
         selectedPageID = nil
     }
 
-    // MARK: - Miniature (live, to scale)
+    // MARK: - Miniature (live, to scale, drag-to-rearrange)
 
     private func miniature(page: DashboardPage) -> some View {
-        GeometryReader { proxy in
-            // Render at the reference dashboard size, then scale to fit — the
-            // miniature is the real page view, live data included.
-            let reference = CGSize(width: 2560, height: 720)
-            let scale = min(proxy.size.width / reference.width, proxy.size.height / reference.height)
-            let theme = BuiltinThemes.theme(for: config.themeID)
-            ZStack {
-                theme.pageBackground.color
-                DashboardPageView(page: page, registry: registry, hub: hub, services: services)
-                    .environment(\.colorScheme, .dark)
-                    .environment(\.theme, theme)
+        InteractiveMiniature(
+            page: page,
+            registry: registry,
+            hub: hub,
+            services: services,
+            themeID: config.themeID,
+            selectedPlacementID: $selectedPlacementID,
+            commitMove: { placementID, newFrame in
+                configStore.update { config in
+                    guard let pageIndex = config.pages.firstIndex(where: { $0.id == page.id }),
+                          let index = config.pages[pageIndex].placements.firstIndex(where: { $0.id == placementID })
+                    else { return } // placement vanished mid-drag (hand edit)
+                    config.pages[pageIndex].placements[index].frame = newFrame
+                }
             }
-            .frame(width: reference.width, height: reference.height)
-            .scaleEffect(scale, anchor: .topLeading)
-            .frame(
-                width: reference.width * scale,
-                height: reference.height * scale,
-                alignment: .topLeading
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.separator, lineWidth: 1))
-            .frame(maxWidth: .infinity, alignment: .center)
-        }
+        )
         .aspectRatio(2560.0 / 720.0, contentMode: .fit)
         .frame(maxHeight: 180)
     }
@@ -277,6 +273,152 @@ public struct DashboardSettingsView: View {
                   let placementIndex = config.pages[pageIndex].placements.firstIndex(where: { $0.id == id }) else { return }
             mutate(&config.pages[pageIndex].placements[placementIndex])
         }
+    }
+}
+
+/// Live to-scale preview that is also the layout editor: click a widget to
+/// select it, drag to move it with grid snapping. All geometry math happens
+/// in the 2560×720 reference space (the same pure functions the renderer
+/// uses); only the final rects are scaled down for display.
+private struct InteractiveMiniature: View {
+    let page: DashboardPage
+    let registry: WidgetRegistry
+    let hub: MetricHub
+    let services: WidgetServices?
+    let themeID: ThemeID
+    @Binding var selectedPlacementID: UUID?
+    let commitMove: (UUID, GridRect) -> Void
+
+    private static let reference = CGSize(width: 2560, height: 720)
+    private static let grid = GridDimensions.landscape
+
+    @State private var dragID: UUID?
+    @State private var dragTranslation: CGSize = .zero // miniature (scaled) space
+
+    var body: some View {
+        GeometryReader { proxy in
+            let scale = min(proxy.size.width / Self.reference.width, proxy.size.height / Self.reference.height)
+            let theme = BuiltinThemes.theme(for: themeID)
+            ZStack(alignment: .topLeading) {
+                ZStack {
+                    theme.pageBackground.color
+                    DashboardPageView(page: page, registry: registry, hub: hub, services: services)
+                        .environment(\.colorScheme, .dark)
+                        .environment(\.theme, theme)
+                }
+                .frame(width: Self.reference.width, height: Self.reference.height)
+                .scaleEffect(scale, anchor: .topLeading)
+                .frame(
+                    width: Self.reference.width * scale,
+                    height: Self.reference.height * scale,
+                    alignment: .topLeading
+                )
+                .allowsHitTesting(false) // widgets must not eat the editor's mouse
+
+                ForEach(page.placements) { placement in
+                    placementOverlay(placement, scale: scale)
+                }
+
+                if let ghost = ghostGeometry(scale: scale) {
+                    let target = DashboardPageView
+                        .cellRect(for: ghost.candidate, in: Self.reference, grid: Self.grid)
+                        .scaled(by: scale)
+                    RoundedRectangle(cornerRadius: 4)
+                        .strokeBorder(ghost.color, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                        .frame(width: target.width, height: target.height)
+                        .offset(x: target.minX, y: target.minY)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(ghost.color.opacity(0.16))
+                        .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(ghost.color, lineWidth: 1.5))
+                        .frame(width: ghost.floating.width, height: ghost.floating.height)
+                        .offset(x: ghost.floating.minX, y: ghost.floating.minY)
+                        .allowsHitTesting(false)
+                }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(.separator, lineWidth: 1))
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+    }
+
+    private func placementOverlay(_ placement: WidgetPlacement, scale: CGFloat) -> some View {
+        let rect = DashboardPageView
+            .cellRect(for: placement.frame, in: Self.reference, grid: Self.grid)
+            .scaled(by: scale)
+        let isSelected = placement.id == selectedPlacementID
+        return RoundedRectangle(cornerRadius: 4)
+            .strokeBorder(Color.accentColor.opacity(isSelected ? 0.9 : 0), lineWidth: 1.5)
+            .contentShape(Rectangle())
+            .frame(width: rect.width, height: rect.height)
+            .offset(x: rect.minX, y: rect.minY)
+            .onTapGesture { selectedPlacementID = placement.id }
+            .gesture(dragGesture(placement, scale: scale))
+    }
+
+    private func dragGesture(_ placement: WidgetPlacement, scale: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 3)
+            .onChanged { value in
+                if dragID != placement.id {
+                    dragID = placement.id
+                    selectedPlacementID = placement.id // grabbing selects too
+                }
+                dragTranslation = value.translation
+            }
+            .onEnded { value in
+                defer {
+                    dragID = nil
+                    dragTranslation = .zero
+                }
+                guard let candidate = candidateFrame(for: placement, translation: value.translation, scale: scale),
+                      candidate != placement.frame // same slot: silent no-op
+                else { return }
+                if LayoutEngine.validate(candidate, among: siblings(of: placement), in: Self.grid) {
+                    commitMove(placement.id, candidate)
+                } else {
+                    NSSound.beep() // ghost vanishes; the widget never moved
+                }
+            }
+    }
+
+    /// Snapped drop frame for a drag: translation is in miniature space, so
+    /// divide by scale exactly once, here.
+    private func candidateFrame(for placement: WidgetPlacement, translation: CGSize, scale: CGFloat) -> GridRect? {
+        guard scale > 0 else { return nil }
+        let refRect = DashboardPageView.cellRect(for: placement.frame, in: Self.reference, grid: Self.grid)
+        let proposed = CGPoint(
+            x: refRect.minX + translation.width / scale,
+            y: refRect.minY + translation.height / scale
+        )
+        let origin = DashboardPageView.gridOrigin(
+            at: proposed, size: placement.frame.size, in: Self.reference, grid: Self.grid
+        )
+        var frame = placement.frame
+        frame.col = origin.col
+        frame.row = origin.row
+        return frame
+    }
+
+    private func siblings(of placement: WidgetPlacement) -> [GridRect] {
+        page.placements.filter { $0.id != placement.id }.map(\.frame)
+    }
+
+    private func ghostGeometry(scale: CGFloat) -> (candidate: GridRect, color: Color, floating: CGRect)? {
+        guard let dragID,
+              let placement = page.placements.first(where: { $0.id == dragID }),
+              let candidate = candidateFrame(for: placement, translation: dragTranslation, scale: scale)
+        else { return nil }
+        let valid = LayoutEngine.validate(candidate, among: siblings(of: placement), in: Self.grid)
+        let refRect = DashboardPageView.cellRect(for: placement.frame, in: Self.reference, grid: Self.grid)
+        let floating = refRect
+            .offsetBy(dx: dragTranslation.width / scale, dy: dragTranslation.height / scale)
+            .scaled(by: scale)
+        return (candidate, valid ? .green : .red, floating)
+    }
+}
+
+private extension CGRect {
+    func scaled(by scale: CGFloat) -> CGRect {
+        CGRect(x: minX * scale, y: minY * scale, width: width * scale, height: height * scale)
     }
 }
 
