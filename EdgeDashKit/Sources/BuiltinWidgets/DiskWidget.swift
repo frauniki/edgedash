@@ -95,7 +95,19 @@ private struct DiskView: View {
                 }
                 .frame(maxHeight: .infinity)
             } else {
-                LabeledRing(fraction: fraction, color: ringColor, label: percentText)
+                // 1×1: ring on top, live access rates + sparkline below.
+                VStack(alignment: .leading, spacing: 5) {
+                    LabeledRing(fraction: fraction, color: ringColor, label: percentText)
+                        .frame(maxHeight: .infinity)
+                    if config.showIO {
+                        if let ioRates {
+                            ioRow("Read", ioRates.read, theme.accent.color)
+                            ioRow("Write", ioRates.write, theme.accentAlt.color)
+                        }
+                        SparklineView(history: io.history, color: theme.accent.color)
+                            .frame(height: 26)
+                    }
+                }
             }
         }
         .padding(14)
