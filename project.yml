@@ -35,6 +35,10 @@ targets:
         LSMinimumSystemVersion: "15.0"
         NSInputMonitoringUsageDescription: EdgeDash reads the XENEON EDGE touch panel directly to provide on-screen touch controls without moving your cursor.
         NSAppleEventsUsageDescription: EdgeDash controls the Music app to show and operate the now-playing widget on your dashboard.
+        # Modern SDKs check the WhenInUse key even on macOS; the legacy key
+        # covers older readers. Both point at the same purpose string.
+        NSLocationUsageDescription: EdgeDash shows local weather on your dashboard.
+        NSLocationWhenInUseUsageDescription: EdgeDash shows local weather on your dashboard.
         NSHumanReadableCopyright: © 2026 frauniki
     settings:
       base:

@@ -9,6 +9,7 @@ import Observation
 import SettingsUI
 import SMCBridge
 import SwiftUI
+import WeatherWidgets
 import WidgetEngine
 
 @MainActor @Observable final class AppModel {
@@ -21,6 +22,9 @@ import WidgetEngine
     let widgetServices = WidgetServices()
     let musicPlayer = MusicPlayerController(transport: AppleMusicTransport())
     let claudeMonitor = ClaudeCodeMonitor()
+    // No setActive gating: weather polling is view-driven (locations live in
+    // per-widget configs), so visibility gating falls out of view lifetime.
+    let weatherMonitor = WeatherMonitor()
     private(set) var touchCapture: TouchDeviceCapture?
     private let keepAwake = KeepAwakeController()
     let configStore = ConfigStore(defaultConfig: DashboardConfig(pages: BuiltinWidgets.starterPages()))
@@ -43,8 +47,10 @@ import WidgetEngine
         BuiltinWidgets.registerAll(in: registry)
         MediaWidgets.registerAll(in: registry)
         AgentWidgets.registerAll(in: registry)
+        WeatherWidgets.registerAll(in: registry)
         widgetServices.register(musicPlayer)
         widgetServices.register(claudeMonitor)
+        widgetServices.register(weatherMonitor)
 
         display.onStateChange = { [weak self] in self?.sync() }
         display.selection = configStore.config.display // manual pick persists
