@@ -23,7 +23,10 @@ public struct DashboardRootView: View {
     public var body: some View {
         let theme = BuiltinThemes.theme(for: config.themeID)
         ZStack {
-            theme.pageBackground.color
+            if config.options.backgroundBlur {
+                BehindWindowBlur()
+            }
+            theme.pageBackground.color.opacity(config.options.backgroundOpacity)
             if let page = activePage {
                 DashboardPageView(page: page, registry: registry, hub: hub, services: services)
                     .id(page.id)
@@ -140,6 +143,20 @@ public struct DashboardPageView: View {
             UnknownWidgetView(type: placement.type)
         }
     }
+}
+
+/// Frosted-glass blur of whatever sits behind the dashboard window — on the
+/// EDGE that's the desktop wallpaper.
+struct BehindWindowBlur: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.blendingMode = .behindWindow
+        view.material = .hudWindow
+        view.state = .active // never dim: the dashboard window is never key
+        return view
+    }
+
+    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
 }
 
 /// Shared widget frame: gradient surface with a top-lit hairline stroke.

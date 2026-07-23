@@ -59,6 +59,14 @@ import Testing
         #expect(decoded.pages[0].placements[0].type == WidgetTypeID("edgedash.cpu"))
     }
 
+    @Test func legacyGlobalOptionsDecodeWithDefaults() throws {
+        let legacy = Data(#"{"keepAwake":true}"#.utf8)
+        let options = try JSONDecoder().decode(GlobalOptions.self, from: legacy)
+        #expect(options.keepAwake)
+        #expect(options.backgroundOpacity == 1)
+        #expect(!options.backgroundBlur)
+    }
+
     @Test func placementChromeRoundTripsAndDefaultsOn() throws {
         // Pre-chrome configs (no key) decode to chrome = true.
         let legacy = Data("""

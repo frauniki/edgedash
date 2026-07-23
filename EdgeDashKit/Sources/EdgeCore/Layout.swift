@@ -118,9 +118,28 @@ public struct GlobalOptions: Codable, Sendable, Equatable {
     /// Prevent display sleep while the dashboard is visible. Affects ALL
     /// displays — macOS has no per-display sleep.
     public var keepAwake: Bool
+    /// Page background opacity 0…1; below 1 the desktop wallpaper behind the
+    /// dashboard window shows through.
+    public var backgroundOpacity: Double
+    /// Frosted-glass blur of whatever is behind the window (the wallpaper).
+    public var backgroundBlur: Bool
 
-    public init(keepAwake: Bool = false) {
+    public init(keepAwake: Bool = false, backgroundOpacity: Double = 1, backgroundBlur: Bool = false) {
         self.keepAwake = keepAwake
+        self.backgroundOpacity = backgroundOpacity
+        self.backgroundBlur = backgroundBlur
+    }
+
+    // Manual decoding so configs written before these knobs existed stay valid.
+    private enum CodingKeys: String, CodingKey {
+        case keepAwake, backgroundOpacity, backgroundBlur
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        keepAwake = try container.decodeIfPresent(Bool.self, forKey: .keepAwake) ?? false
+        backgroundOpacity = try container.decodeIfPresent(Double.self, forKey: .backgroundOpacity) ?? 1
+        backgroundBlur = try container.decodeIfPresent(Bool.self, forKey: .backgroundBlur) ?? false
     }
 }
 

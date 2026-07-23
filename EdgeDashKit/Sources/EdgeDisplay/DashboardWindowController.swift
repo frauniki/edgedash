@@ -61,8 +61,10 @@ import SwiftUI
             backing: .buffered,
             defer: false
         )
-        window.isOpaque = true
-        window.backgroundColor = .black
+        // Non-opaque so the SwiftUI root controls background opacity/blur —
+        // the desktop wallpaper behind the window can show through.
+        window.isOpaque = false
+        window.backgroundColor = .clear
         window.hasShadow = false
         // Above menu bar (24) and Dock (20); below system alerts. Shielding
         // level would block TCC prompts and Mission Control — never use it.
