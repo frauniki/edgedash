@@ -35,8 +35,16 @@ import Observation
     public func requestIfNeeded(now: Date = Date()) {
         switch manager.authorizationStatus {
         case .notDetermined:
+            // Ask exactly once per launch — the poll loop lands here every
+            // few seconds and re-requesting while the consent prompt is
+            // pending can keep it from ever appearing.
+            guard state != .waitingForPermission else { return }
             state = .waitingForPermission
             manager.requestWhenInUseAuthorization()
+            // Queue a one-shot fix too: an actual location request raises
+            // the consent prompt more reliably for agent (LSUIElement)
+            // apps, and delivers the fix right after a grant.
+            manager.requestLocation()
         case .denied, .restricted:
             state = .denied
         case .authorizedAlways: // the only granted status on macOS
@@ -81,8 +89,12 @@ extension LocationProvider: CLLocationManagerDelegate {
     nonisolated public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         Task { @MainActor [weak self] in
             guard let self else { return }
-            // Keep an existing fix through transient errors.
-            if case .located = self.state { return }
+            // The implicit request made while consent is pending fails with
+            // kCLErrorDenied before the user has actually answered — stay in
+            // waitingForPermission; a real denial arrives via
+            // locationManagerDidChangeAuthorization. Keep an existing fix
+            // through transient errors.
+            guard case .locating = self.state else { return }
             self.state = .failed
         }
     }

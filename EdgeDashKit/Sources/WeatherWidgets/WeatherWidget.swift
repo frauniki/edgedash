@@ -323,7 +323,9 @@ private struct WeatherView: View {
                 return "Location access denied —\nset a city in settings"
             case .failed:
                 return "No location fix —\nset a city in settings"
-            case .idle, .waitingForPermission, .locating:
+            case .waitingForPermission:
+                return "Waiting for location permission —\nor set a city in settings"
+            case .idle, .locating:
                 return "Locating…"
             case .located:
                 break
