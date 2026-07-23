@@ -1,3 +1,4 @@
+import AgentWidgets
 import BuiltinWidgets
 import EdgeCore
 import MediaWidgets
@@ -19,6 +20,7 @@ import WidgetEngine
     let touchRouter = TouchRouter()
     let widgetServices = WidgetServices()
     let musicPlayer = MusicPlayerController(transport: AppleMusicTransport())
+    let claudeMonitor = ClaudeCodeMonitor()
     private(set) var touchCapture: TouchDeviceCapture?
     private let keepAwake = KeepAwakeController()
     let configStore = ConfigStore(defaultConfig: DashboardConfig(pages: BuiltinWidgets.starterPages()))
@@ -40,7 +42,9 @@ import WidgetEngine
     init() {
         BuiltinWidgets.registerAll(in: registry)
         MediaWidgets.registerAll(in: registry)
+        AgentWidgets.registerAll(in: registry)
         widgetServices.register(musicPlayer)
+        widgetServices.register(claudeMonitor)
 
         display.onStateChange = { [weak self] in self?.sync() }
         display.selection = configStore.config.display // manual pick persists
@@ -204,19 +208,23 @@ import WidgetEngine
             wanted.formUnion(debugMetricIDs) // Debug tab shows everything
         }
         Task { await engine.setActiveMetrics(wanted) }
-        refreshMediaService(activePage: page)
+        refreshServiceActivation(activePage: page)
     }
 
-    /// Media polling mirrors the metric gating: run only while a now-playing
-    /// widget can actually be seen — on the visible dashboard's active page,
-    /// or anywhere in the config while settings previews pages.
-    private func refreshMediaService(activePage: DashboardPage?) {
-        let hasWidget = { (page: DashboardPage) in
-            page.placements.contains { $0.type == NowPlayingWidget.typeID }
+    /// Service-backed widgets (media, agents) mirror the metric gating: their
+    /// pollers run only while a page showing them can actually be seen — the
+    /// visible dashboard's active page, or any page while settings is open.
+    private func refreshServiceActivation(activePage: DashboardPage?) {
+        func shouldRun(_ typeID: WidgetTypeID) -> Bool {
+            let hasWidget = { (page: DashboardPage) in
+                page.placements.contains { $0.type == typeID }
+            }
+            let onDashboard = dashboardVisible && (activePage.map(hasWidget) ?? false)
+            let inSettings = settingsVisible && configStore.config.pages.contains(where: hasWidget)
+            return onDashboard || inSettings
         }
-        let onDashboard = dashboardVisible && (activePage.map(hasWidget) ?? false)
-        let inSettings = settingsVisible && configStore.config.pages.contains(where: hasWidget)
-        musicPlayer.setActive(onDashboard || inSettings)
+        musicPlayer.setActive(shouldRun(NowPlayingWidget.typeID))
+        claudeMonitor.setActive(shouldRun(ClaudeCodeWidget.typeID))
     }
 
     /// Sample only while someone is looking: dashboard on a screen or the

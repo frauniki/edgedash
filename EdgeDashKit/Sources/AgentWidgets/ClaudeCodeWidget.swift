@@ -1,0 +1,245 @@
+import EdgeCore
+import EdgeTouch
+import SwiftUI
+import WidgetEngine
+
+public struct ClaudeCodeWidget: WidgetDefinition {
+    public struct Config: Codable, Sendable, DefaultInitializable {
+        public var windowHours = 8.0
+        public var maxRows = 5
+        public var showTokens = true
+        public var showTitles = true
+        public var showBranch = true
+        public init() {}
+
+        // Lenient decoding: adding fields must not reset saved configs.
+        private enum CodingKeys: String, CodingKey {
+            case windowHours, maxRows, showTokens, showTitles, showBranch
+        }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            windowHours = try container.decodeIfPresent(Double.self, forKey: .windowHours) ?? 8
+            maxRows = try container.decodeIfPresent(Int.self, forKey: .maxRows) ?? 5
+            showTokens = try container.decodeIfPresent(Bool.self, forKey: .showTokens) ?? true
+            showTitles = try container.decodeIfPresent(Bool.self, forKey: .showTitles) ?? true
+            showBranch = try container.decodeIfPresent(Bool.self, forKey: .showBranch) ?? true
+        }
+    }
+
+    public static let typeID = WidgetTypeID("edgedash.claudecode")
+    public static let displayName = "Claude Code"
+    public static let category = WidgetCategory.agent
+    public static let supportedSizes = [
+        GridSize(cols: 1, rows: 1), GridSize(cols: 2, rows: 1),
+        GridSize(cols: 2, rows: 2), GridSize(cols: 4, rows: 2),
+    ]
+
+    public static func requiredMetrics(for config: Config) -> Set<MetricID> { [] }
+
+    @MainActor public static func makeView(config: Config, context: WidgetContext) -> AnyView {
+        guard let monitor = context.services.resolve(ClaudeCodeMonitor.self) else {
+            return AnyView(
+                Text("Agent service unavailable")
+                    .font(.system(size: 12, design: .rounded))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            )
+        }
+        return AnyView(ClaudeCodeView(config: config, monitor: monitor, size: context.size))
+    }
+
+    @MainActor public static func makeConfigView(config: Binding<Config>, context: WidgetContext) -> AnyView {
+        AnyView(ClaudeCodeConfigView(config: config))
+    }
+}
+
+private struct ClaudeCodeView: View {
+    @Environment(\.theme) private var theme
+    let config: ClaudeCodeWidget.Config
+    let monitor: ClaudeCodeMonitor
+    let size: GridSize
+
+    private var visibleSessions: [AgentSession] {
+        let cutoff = Date().addingTimeInterval(-config.windowHours * 3600)
+        return monitor.sessions.filter { $0.lastActivity > cutoff }
+    }
+
+    private var workingCount: Int {
+        visibleSessions.count { $0.state == .working }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            WidgetTitle(text: "CLAUDE CODE", value: "\(workingCount)")
+            if visibleSessions.isEmpty {
+                Text("No recent sessions")
+                    .font(.system(size: 12, design: .rounded))
+                    .foregroundStyle(theme.textSecondary.color)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if size.cols == 1 {
+                miniLayout
+            } else {
+                listLayout
+            }
+            if config.showTokens, size.cols >= 2 || size.rows >= 2 {
+                totalsLine
+            }
+        }
+        .padding(14)
+    }
+
+    /// 1×1: state dots + today's output tokens.
+    private var miniLayout: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                ForEach(visibleSessions.prefix(8)) { session in
+                    StateDot(state: session.state, theme: theme)
+                }
+                Spacer(minLength: 0)
+            }
+            ForEach(visibleSessions.prefix(3)) { session in
+                HStack(spacing: 6) {
+                    StateDot(state: session.state, theme: theme)
+                    Text(session.projectName)
+                        .font(.system(size: 12, weight: .medium, design: .rounded))
+                        .foregroundStyle(theme.textPrimary.color)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                    Text(Self.age(session.lastActivity))
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(theme.textSecondary.color)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var listLayout: some View {
+        TouchScrollView {
+            VStack(alignment: .leading, spacing: size.rows >= 2 ? 6 : 4) {
+                ForEach(visibleSessions.prefix(max(1, config.maxRows))) { session in
+                    sessionRow(session)
+                }
+            }
+        }
+    }
+
+    private func sessionRow(_ session: AgentSession) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            StateDot(state: session.state, theme: theme)
+            VStack(alignment: .leading, spacing: 1) {
+                HStack(spacing: 6) {
+                    Text(session.projectName)
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
+                        .foregroundStyle(theme.textPrimary.color)
+                        .lineLimit(1)
+                    if config.showBranch, let branch = session.branch {
+                        Text(branch)
+                            .font(.system(size: 11, design: .monospaced))
+                            .foregroundStyle(theme.textSecondary.color)
+                            .lineLimit(1)
+                    }
+                }
+                if config.showTitles, size.rows >= 2, let title = session.title {
+                    Text(title)
+                        .font(.system(size: 11, design: .rounded))
+                        .foregroundStyle(theme.textSecondary.color)
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 8)
+            VStack(alignment: .trailing, spacing: 1) {
+                Text(stateText(session.state))
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(stateColor(session.state))
+                HStack(spacing: 5) {
+                    if size.rows >= 2, let model = session.model {
+                        Text(model)
+                            .font(.system(size: 10, design: .rounded))
+                            .foregroundStyle(theme.textSecondary.color)
+                    }
+                    Text(Self.age(session.lastActivity))
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(theme.textSecondary.color)
+                }
+            }
+        }
+    }
+
+    private var totalsLine: some View {
+        let totals = monitor.todayTotals
+        return Text("today  ↓\(TokenTotals.text(totals.input))  ↑\(TokenTotals.text(totals.output))  ·  \(totals.sessions) sessions")
+            .font(.system(size: 11, design: .rounded))
+            .monospacedDigit()
+            .foregroundStyle(theme.textSecondary.color)
+            .lineLimit(1)
+    }
+
+    private func stateText(_ state: AgentSession.State) -> String {
+        switch state {
+        case .working: "working"
+        case .awaitingInput: "your turn"
+        case .idle: "idle"
+        }
+    }
+
+    private func stateColor(_ state: AgentSession.State) -> Color {
+        switch state {
+        case .working: theme.accent.color
+        case .awaitingInput: theme.warn.color
+        case .idle: theme.textSecondary.color
+        }
+    }
+
+    static func age(_ date: Date) -> String {
+        let seconds = max(0, Date().timeIntervalSince(date))
+        switch seconds {
+        case ..<60: return "now"
+        case ..<3600: return "\(Int(seconds / 60))m"
+        default: return "\(Int(seconds / 3600))h"
+        }
+    }
+}
+
+/// Session state dot; pulses while the agent is working.
+private struct StateDot: View {
+    let state: AgentSession.State
+    let theme: Theme
+    @State private var dim = false
+
+    var body: some View {
+        Circle()
+            .fill(color)
+            .frame(width: 7, height: 7)
+            .opacity(state == .working && dim ? 0.3 : 1)
+            .animation(
+                state == .working ? .easeInOut(duration: 0.9).repeatForever(autoreverses: true) : .default,
+                value: dim
+            )
+            .onAppear { dim = true }
+    }
+
+    private var color: Color {
+        switch state {
+        case .working: theme.accent.color
+        case .awaitingInput: theme.warn.color
+        case .idle: theme.textSecondary.color.opacity(0.5)
+        }
+    }
+}
+
+private struct ClaudeCodeConfigView: View {
+    @Binding var config: ClaudeCodeWidget.Config
+
+    var body: some View {
+        Form {
+            LabeledContent(String(format: "Window: %.0f h", config.windowHours)) {
+                Slider(value: $config.windowHours, in: 1...24, step: 1)
+            }
+            Stepper("Rows: \(config.maxRows)", value: $config.maxRows, in: 1...12)
+            Toggle("Today's tokens", isOn: $config.showTokens)
+            Toggle("Session titles", isOn: $config.showTitles)
+            Toggle("Git branch", isOn: $config.showBranch)
+        }
+    }
+}

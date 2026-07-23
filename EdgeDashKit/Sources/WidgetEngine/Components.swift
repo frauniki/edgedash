@@ -5,6 +5,34 @@ import SwiftUI
 /// the per-second hot path. Track colors and glow come from the theme; the
 /// data color is passed by the widget (it encodes meaning: accent, warn…).
 
+/// Common "TITLE          value" header line for widgets.
+public struct WidgetTitle: View {
+    @Environment(\.theme) private var theme
+    let text: String
+    var value: String?
+
+    public init(text: String, value: String? = nil) {
+        self.text = text
+        self.value = value
+    }
+
+    public var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(text)
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(theme.textSecondary.color)
+                .kerning(1.5)
+            Spacer()
+            if let value {
+                Text(value)
+                    .font(.system(size: 24, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(theme.textPrimary.color)
+            }
+        }
+    }
+}
+
 public struct SparklineView: View {
     @Environment(\.theme) private var theme
     let values: [Double]
