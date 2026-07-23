@@ -169,7 +169,7 @@ private struct CPUView: View {
         }
     }
 
-    /// 2×1: histogram + legend only.
+    /// 2×1: histogram + single combined core-ring row + legend.
     @ViewBuilder private var compactLayout: some View {
         if config.showHistory {
             StackedBarHistory(
@@ -179,6 +179,22 @@ private struct CPUView: View {
                 topColor: theme.accentAlt.color
             )
             .frame(maxHeight: .infinity)
+        }
+        if config.showPerCore, !cores.isEmpty {
+            let clusters = clusters
+            // One row, E then P, cluster encoded by color — fits a 2×1 cell.
+            let diameter: CGFloat = cores.count > 20 ? 13 : 18
+            HStack(spacing: 5) {
+                ForEach(Array(clusters.e.enumerated()), id: \.offset) { _, value in
+                    MiniRing(fraction: value, color: theme.accentAlt.color)
+                        .frame(width: diameter, height: diameter)
+                }
+                ForEach(Array(clusters.p.enumerated()), id: \.offset) { _, value in
+                    MiniRing(fraction: value, color: theme.accent.color)
+                        .frame(width: diameter, height: diameter)
+                }
+                Spacer(minLength: 0)
+            }
         }
         splitLegend
     }
