@@ -58,4 +58,19 @@ import Testing
         #expect(decoded.pages.count == 1)
         #expect(decoded.pages[0].placements[0].type == WidgetTypeID("edgedash.cpu"))
     }
+
+    @Test func placementChromeRoundTripsAndDefaultsOn() throws {
+        // Pre-chrome configs (no key) decode to chrome = true.
+        let legacy = Data("""
+        {"id":"\(UUID().uuidString)","type":"edgedash.cpu",
+         "frame":{"col":0,"row":0,"size":{"cols":1,"rows":1}}}
+        """.utf8)
+        let decoded = try JSONDecoder().decode(WidgetPlacement.self, from: legacy)
+        #expect(decoded.chrome)
+
+        var placement = decoded
+        placement.chrome = false
+        let reencoded = try JSONEncoder().encode(placement)
+        #expect(try JSONDecoder().decode(WidgetPlacement.self, from: reencoded).chrome == false)
+    }
 }

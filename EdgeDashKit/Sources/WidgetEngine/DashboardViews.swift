@@ -121,15 +121,23 @@ public struct DashboardPageView: View {
 
     @ViewBuilder
     private func widgetBody(for placement: WidgetPlacement) -> some View {
-        WidgetChrome {
-            if let definition = registry.definition(for: placement.type) {
-                definition.makeView(
-                    configData: placement.configData,
-                    context: WidgetContext(hub: hub, size: placement.frame.size, services: services)
-                )
-            } else {
-                UnknownWidgetView(type: placement.type)
-            }
+        if placement.chrome {
+            WidgetChrome { widgetContent(for: placement) }
+        } else {
+            widgetContent(for: placement)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    @ViewBuilder
+    private func widgetContent(for placement: WidgetPlacement) -> some View {
+        if let definition = registry.definition(for: placement.type) {
+            definition.makeView(
+                configData: placement.configData,
+                context: WidgetContext(hub: hub, size: placement.frame.size, services: services)
+            )
+        } else {
+            UnknownWidgetView(type: placement.type)
         }
     }
 }

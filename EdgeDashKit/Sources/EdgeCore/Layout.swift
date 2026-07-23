@@ -67,12 +67,30 @@ public struct WidgetPlacement: Codable, Identifiable, Sendable {
     /// Widget-private configuration, encoded by the owning widget definition.
     /// Opaque here so unknown widget types survive decoding.
     public var configData: Data?
+    /// Draw the card surface behind the widget; false floats the content
+    /// directly on the page background.
+    public var chrome: Bool
 
-    public init(id: UUID = UUID(), type: WidgetTypeID, frame: GridRect, configData: Data? = nil) {
+    public init(id: UUID = UUID(), type: WidgetTypeID, frame: GridRect, configData: Data? = nil, chrome: Bool = true) {
         self.id = id
         self.type = type
         self.frame = frame
         self.configData = configData
+        self.chrome = chrome
+    }
+
+    // Manual decoding so configs written before `chrome` existed stay valid.
+    private enum CodingKeys: String, CodingKey {
+        case id, type, frame, configData, chrome
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        type = try container.decode(WidgetTypeID.self, forKey: .type)
+        frame = try container.decode(GridRect.self, forKey: .frame)
+        configData = try container.decodeIfPresent(Data.self, forKey: .configData)
+        chrome = try container.decodeIfPresent(Bool.self, forKey: .chrome) ?? true
     }
 }
 

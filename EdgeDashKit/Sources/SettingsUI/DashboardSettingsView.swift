@@ -247,6 +247,13 @@ public struct DashboardSettingsView: View {
                     ) { newFrame in
                         updatePlacement(placement.id, in: page) { $0.frame = newFrame }
                     }
+                    Toggle("Card background", isOn: Binding(
+                        get: {
+                            selectedPlacement(in: configStore.config.pages.first { $0.id == page.id } ?? page)?
+                                .chrome ?? true
+                        },
+                        set: { on in updatePlacement(placement.id, in: page) { $0.chrome = on } }
+                    ))
                     Divider()
                     definition.makeConfigView(
                         configData: Binding(
