@@ -28,9 +28,13 @@ public struct DashboardSettingsView: View {
     }
 
     public var body: some View {
-        HSplitView {
+        // HStack, not HSplitView: HSplitView refuses to compress children
+        // below their ideal width and overflows the window edge instead
+        // (clipping the sidebar), so fixed-width columns + a flexible rest.
+        HStack(spacing: 0) {
             pageList
-                .frame(minWidth: 150, maxWidth: 200)
+                .frame(width: 160)
+            Divider()
             VStack(spacing: 12) {
                 if let page = selectedPage {
                     miniature(page: page)
@@ -157,9 +161,10 @@ public struct DashboardSettingsView: View {
     // MARK: - Placement editor
 
     private func editor(page: DashboardPage) -> some View {
-        HSplitView {
+        HStack(spacing: 0) {
             placementList(page: page)
-                .frame(minWidth: 180, maxWidth: 240)
+                .frame(width: 210)
+            Divider()
             inspector(page: page)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }

@@ -92,7 +92,10 @@ public struct SettingsRootView: View {
                 // Fills the otherwise-empty toolbar band above every pane.
                 .navigationTitle(pane.rawValue)
         }
-        .frame(minWidth: 760, minHeight: 500)
+        // Dashboard is the widest pane: sidebar + page list + placement list
+        // + inspector minimums ≈ 880. A smaller window would force the
+        // inspector's geometry rows to clip.
+        .frame(minWidth: 880, minHeight: 500)
         .onAppear { deps.onVisibilityChange(true) }
         .onDisappear { deps.onVisibilityChange(false) }
     }
