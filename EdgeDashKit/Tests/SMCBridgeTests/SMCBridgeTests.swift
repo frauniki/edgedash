@@ -21,8 +21,16 @@ import Testing
     }
 
     // Live smoke tests on this machine (M3 Max MacBook Pro: has sensors and fans).
+    // VMs (CI runners) expose no SMC temperature sensors, so gate on that.
 
-    @Test func liveTemperatureSensors() {
+    private static var isVirtualMachine: Bool {
+        var value: Int32 = 0
+        var size = MemoryLayout<Int32>.size
+        sysctlbyname("kern.hv_vmm_present", &value, &size, nil, 0)
+        return value == 1
+    }
+
+    @Test(.enabled(if: !isVirtualMachine)) func liveTemperatureSensors() {
         let sensors = HIDTemperatureSensors.readAll()
         #expect(!sensors.isEmpty, "expected AppleVendor temperature sensors on Apple Silicon")
         // Sanity: values in plausible range already filtered; at least one > 10 °C.
