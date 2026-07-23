@@ -376,6 +376,10 @@ public struct MirroredAreaHistory: View {
             let stepX = size.width / CGFloat(max(capacity - 1, 1))
             let startX = size.width - CGFloat(pairs.count - 1) * stepX
             let half = centerY - 1
+            // Bound outside `draw`: nested funcs don't inherit the closure's
+            // actor isolation on all toolchains, so touching `theme` inside
+            // one fails to compile on CI.
+            let glowStrength = theme.glowStrength
 
             func draw(_ series: [Double], sign: CGFloat, color: Color) {
                 var line = Path()
@@ -395,9 +399,9 @@ public struct MirroredAreaHistory: View {
                     startPoint: CGPoint(x: 0, y: sign < 0 ? 0 : size.height),
                     endPoint: CGPoint(x: 0, y: centerY)
                 ))
-                if theme.glowStrength > 0 {
+                if glowStrength > 0 {
                     var glowContext = context
-                    glowContext.addFilter(.shadow(color: color.opacity(theme.glowStrength), radius: 4))
+                    glowContext.addFilter(.shadow(color: color.opacity(glowStrength), radius: 4))
                     glowContext.stroke(line, with: .color(color), lineWidth: 1.5)
                 } else {
                     context.stroke(line, with: .color(color), lineWidth: 1.5)
