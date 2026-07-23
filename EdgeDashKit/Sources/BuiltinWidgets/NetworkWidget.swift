@@ -72,8 +72,9 @@ private struct NetworkView: View {
             ZStack {
                 // Shared scale so up/down are visually comparable.
                 let top = max(downHistory.max() ?? 0, upHistory.max() ?? 0, 1)
-                SparklineView(values: downHistory, maxValue: top, color: theme.accent.color)
-                SparklineView(values: upHistory, maxValue: top, color: theme.accentAlt.color)
+                let capacity = throughput.history.capacity
+                SparklineView(values: downHistory, capacity: capacity, maxValue: top, color: theme.accent.color)
+                SparklineView(values: upHistory, capacity: capacity, maxValue: top, color: theme.accentAlt.color)
             }
             .frame(maxHeight: .infinity)
             if config.showAddress, size.rows >= 2 {

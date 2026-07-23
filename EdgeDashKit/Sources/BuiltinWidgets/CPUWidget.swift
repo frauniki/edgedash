@@ -147,6 +147,7 @@ private struct CPUView: View {
         if config.showHistory {
             StackedBarHistory(
                 pairs: splitHistory,
+                capacity: breakdown.history.capacity,
                 bottomColor: theme.accent.color,
                 topColor: theme.accentAlt.color
             )
@@ -172,6 +173,7 @@ private struct CPUView: View {
         if config.showHistory {
             StackedBarHistory(
                 pairs: splitHistory,
+                capacity: breakdown.history.capacity,
                 bottomColor: theme.accent.color,
                 topColor: theme.accentAlt.color
             )

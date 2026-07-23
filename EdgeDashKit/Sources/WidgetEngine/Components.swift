@@ -8,17 +8,20 @@ import SwiftUI
 public struct SparklineView: View {
     @Environment(\.theme) private var theme
     let values: [Double]
+    let capacity: Int
     var maxValue: Double?
     var color: Color
 
     public init(history: RingBuffer<MetricPoint>, maxValue: Double? = nil, color: Color) {
         self.values = history.compactMap { Self.scalarize($0.value) }
+        self.capacity = history.capacity
         self.maxValue = maxValue
         self.color = color
     }
 
-    public init(values: [Double], maxValue: Double? = nil, color: Color) {
+    public init(values: [Double], capacity: Int? = nil, maxValue: Double? = nil, color: Color) {
         self.values = values
+        self.capacity = capacity ?? values.count
         self.maxValue = maxValue
         self.color = color
     }
@@ -27,20 +30,24 @@ public struct SparklineView: View {
         Canvas { context, size in
             guard values.count > 1 else { return }
             let top = max(maxValue ?? values.max() ?? 1, 0.0001)
-            let stepX = size.width / CGFloat(values.count - 1)
+            // Fixed horizontal scale from buffer CAPACITY: the graph grows in
+            // from the right edge at constant density instead of stretching a
+            // few points across the full width and shrinking as data arrives.
+            let stepX = size.width / CGFloat(max(capacity - 1, 1))
+            let startX = size.width - CGFloat(values.count - 1) * stepX
 
             var line = Path()
             for (i, v) in values.enumerated() {
                 let point = CGPoint(
-                    x: CGFloat(i) * stepX,
+                    x: startX + CGFloat(i) * stepX,
                     y: size.height * (1 - CGFloat(min(v / top, 1)))
                 )
                 i == 0 ? line.move(to: point) : line.addLine(to: point)
             }
 
             var fill = line
-            fill.addLine(to: CGPoint(x: CGFloat(values.count - 1) * stepX, y: size.height))
-            fill.addLine(to: CGPoint(x: 0, y: size.height))
+            fill.addLine(to: CGPoint(x: size.width, y: size.height))
+            fill.addLine(to: CGPoint(x: startX, y: size.height))
             fill.closeSubpath()
 
             context.fill(fill, with: .linearGradient(
@@ -184,11 +191,13 @@ public struct CoreBars: View {
 public struct StackedBarHistory: View {
     @Environment(\.theme) private var theme
     let pairs: [(bottom: Double, top: Double)] // fractions of full height
+    let capacity: Int
     var bottomColor: Color
     var topColor: Color
 
-    public init(pairs: [(bottom: Double, top: Double)], bottomColor: Color, topColor: Color) {
+    public init(pairs: [(bottom: Double, top: Double)], capacity: Int, bottomColor: Color, topColor: Color) {
         self.pairs = pairs
+        self.capacity = capacity
         self.bottomColor = bottomColor
         self.topColor = topColor
     }
@@ -197,9 +206,12 @@ public struct StackedBarHistory: View {
         Canvas { context, size in
             guard !pairs.isEmpty else { return }
             let gap: CGFloat = 1
-            let barW = max((size.width - gap * CGFloat(pairs.count - 1)) / CGFloat(pairs.count), 1)
+            // Capacity-based bar width, newest anchored at the right edge —
+            // constant density while the history buffer fills.
+            let barW = max((size.width - gap * CGFloat(capacity - 1)) / CGFloat(capacity), 1)
+            let startX = size.width - CGFloat(pairs.count) * (barW + gap) + gap
             for (i, pair) in pairs.enumerated() {
-                let x = CGFloat(i) * (barW + gap)
+                let x = startX + CGFloat(i) * (barW + gap)
                 let bottomH = size.height * CGFloat(min(max(pair.bottom, 0), 1))
                 let topH = size.height * CGFloat(min(max(pair.top, 0), 1 - min(max(pair.bottom, 0), 1)))
                 if bottomH > 0.3 {
