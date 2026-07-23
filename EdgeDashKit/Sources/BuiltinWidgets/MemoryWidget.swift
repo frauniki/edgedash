@@ -124,7 +124,18 @@ private struct MemoryView: View {
                 }
                 .frame(maxHeight: .infinity)
             } else {
-                LabeledRing(fraction: fraction, color: theme.accent.color, label: String(format: "%.0f%%", fraction * 100))
+                // 1×1: same content as 2×1, stacked — the cell is just as
+                // tall, only half as wide.
+                VStack(spacing: 7) {
+                    SegmentedRing(
+                        segments: segments,
+                        value: String(format: "%.0f%%", fraction * 100),
+                        caption: "MEMORY"
+                    )
+                    .frame(maxHeight: .infinity)
+                    if config.showBreakdown { legendRows }
+                }
+                .frame(maxWidth: .infinity)
             }
         }
         .padding(14)
