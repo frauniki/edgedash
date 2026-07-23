@@ -34,6 +34,15 @@ public final class NetworkReader: MetricReader, @unchecked Sendable {
 
     /// Current IPv4 address of an interface, for display purposes.
     public static func ipv4Address(interface: String) -> String? {
+        address(interface: interface, family: UInt8(AF_INET))
+    }
+
+    /// First global (non-link-local) IPv6 address of an interface.
+    public static func ipv6Address(interface: String) -> String? {
+        address(interface: interface, family: UInt8(AF_INET6))
+    }
+
+    private static func address(interface: String, family: UInt8) -> String? {
         var addrs: UnsafeMutablePointer<ifaddrs>?
         guard getifaddrs(&addrs) == 0 else { return nil }
         defer { freeifaddrs(addrs) }
@@ -41,10 +50,12 @@ public final class NetworkReader: MetricReader, @unchecked Sendable {
         while let ifa = cursor {
             defer { cursor = ifa.pointee.ifa_next }
             guard String(cString: ifa.pointee.ifa_name) == interface,
-                  let sa = ifa.pointee.ifa_addr, sa.pointee.sa_family == UInt8(AF_INET) else { continue }
+                  let sa = ifa.pointee.ifa_addr, sa.pointee.sa_family == family else { continue }
             var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
             if getnameinfo(sa, socklen_t(sa.pointee.sa_len), &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST) == 0 {
-                return String(cString: host)
+                let text = String(cString: host)
+                if family == UInt8(AF_INET6), text.hasPrefix("fe80") { continue } // skip link-local
+                return text
             }
         }
         return nil

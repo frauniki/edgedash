@@ -286,6 +286,58 @@ public struct SegmentedRing: View {
     }
 }
 
+/// iStat-style mirrored network histogram: upload bars rise above a center
+/// axis, download bars hang below it. Shared scale, capacity-based density,
+/// newest at the right edge.
+public struct MirroredBarHistory: View {
+    @Environment(\.theme) private var theme
+    let pairs: [(up: Double, down: Double)]
+    let capacity: Int
+    var upColor: Color
+    var downColor: Color
+
+    public init(pairs: [(up: Double, down: Double)], capacity: Int, upColor: Color, downColor: Color) {
+        self.pairs = pairs
+        self.capacity = capacity
+        self.upColor = upColor
+        self.downColor = downColor
+    }
+
+    public var body: some View {
+        Canvas { context, size in
+            let centerY = size.height / 2
+            context.fill(
+                Path(CGRect(x: 0, y: centerY - 0.5, width: size.width, height: 1)),
+                with: .color(theme.track.color)
+            )
+            guard !pairs.isEmpty else { return }
+            let top = max(pairs.map(\.up).max() ?? 0, pairs.map(\.down).max() ?? 0, 1)
+            let gap: CGFloat = 1
+            let barW = max((size.width - gap * CGFloat(capacity - 1)) / CGFloat(capacity), 1)
+            let startX = size.width - CGFloat(pairs.count) * (barW + gap) + gap
+            let half = centerY - 1
+
+            for (i, pair) in pairs.enumerated() {
+                let x = startX + CGFloat(i) * (barW + gap)
+                let upH = half * CGFloat(min(pair.up / top, 1))
+                let downH = half * CGFloat(min(pair.down / top, 1))
+                if upH > 0.4 {
+                    context.fill(
+                        Path(CGRect(x: x, y: centerY - 1 - upH, width: barW, height: upH)),
+                        with: .color(upColor)
+                    )
+                }
+                if downH > 0.4 {
+                    context.fill(
+                        Path(CGRect(x: x, y: centerY + 1, width: barW, height: downH)),
+                        with: .color(downColor)
+                    )
+                }
+            }
+        }
+    }
+}
+
 /// Small full-circle progress ring (per-core displays).
 public struct MiniRing: View {
     @Environment(\.theme) private var theme
