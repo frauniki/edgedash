@@ -97,7 +97,7 @@ private struct NetworkView: View {
             } else {
                 header
             }
-            MirroredBarHistory(
+            MirroredAreaHistory(
                 pairs: pairs,
                 capacity: throughput.history.capacity,
                 upColor: theme.accentAlt.color,

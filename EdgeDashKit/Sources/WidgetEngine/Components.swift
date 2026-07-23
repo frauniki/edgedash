@@ -188,7 +188,9 @@ public struct CoreBars: View {
 
 /// iStat-style stacked bar histogram: two series stacked per sample
 /// (e.g. CPU user + system), rendered as vertical bars.
-public struct StackedBarHistory: View {
+/// Stacked two-series line chart (user + system on top), filled to the
+/// baseline in sparkline style. Capacity-based density, newest at the right.
+public struct StackedAreaHistory: View {
     @Environment(\.theme) private var theme
     let pairs: [(bottom: Double, top: Double)] // fractions of full height
     let capacity: Int
@@ -204,29 +206,57 @@ public struct StackedBarHistory: View {
 
     public var body: some View {
         Canvas { context, size in
-            guard !pairs.isEmpty else { return }
-            let gap: CGFloat = 1
-            // Capacity-based bar width, newest anchored at the right edge —
-            // constant density while the history buffer fills.
-            let barW = max((size.width - gap * CGFloat(capacity - 1)) / CGFloat(capacity), 1)
-            let startX = size.width - CGFloat(pairs.count) * (barW + gap) + gap
+            guard pairs.count > 1 else { return }
+            let stepX = size.width / CGFloat(max(capacity - 1, 1))
+            let startX = size.width - CGFloat(pairs.count - 1) * stepX
+            let x = { (i: Int) in startX + CGFloat(i) * stepX }
+            let y = { (fraction: Double) in size.height * (1 - CGFloat(min(max(fraction, 0), 1))) }
+
+            var bottomLine = Path()
+            var stackedLine = Path()
             for (i, pair) in pairs.enumerated() {
-                let x = startX + CGFloat(i) * (barW + gap)
-                let bottomH = size.height * CGFloat(min(max(pair.bottom, 0), 1))
-                let topH = size.height * CGFloat(min(max(pair.top, 0), 1 - min(max(pair.bottom, 0), 1)))
-                if bottomH > 0.3 {
-                    context.fill(
-                        Path(CGRect(x: x, y: size.height - bottomH, width: barW, height: bottomH)),
-                        with: .color(bottomColor)
-                    )
-                }
-                if topH > 0.3 {
-                    context.fill(
-                        Path(CGRect(x: x, y: size.height - bottomH - topH, width: barW, height: topH)),
-                        with: .color(topColor)
-                    )
+                let bottomPoint = CGPoint(x: x(i), y: y(pair.bottom))
+                let stackedPoint = CGPoint(x: x(i), y: y(pair.bottom + pair.top))
+                if i == 0 {
+                    bottomLine.move(to: bottomPoint)
+                    stackedLine.move(to: stackedPoint)
+                } else {
+                    bottomLine.addLine(to: bottomPoint)
+                    stackedLine.addLine(to: stackedPoint)
                 }
             }
+
+            // Fill between the stacked line and the bottom line, then the
+            // bottom line down to the baseline.
+            var stackedFill = stackedLine
+            for (i, pair) in pairs.enumerated().reversed() {
+                stackedFill.addLine(to: CGPoint(x: x(i), y: y(pair.bottom)))
+            }
+            stackedFill.closeSubpath()
+            context.fill(stackedFill, with: .color(topColor.opacity(0.18)))
+
+            var bottomFill = bottomLine
+            bottomFill.addLine(to: CGPoint(x: size.width, y: size.height))
+            bottomFill.addLine(to: CGPoint(x: startX, y: size.height))
+            bottomFill.closeSubpath()
+            context.fill(bottomFill, with: .linearGradient(
+                Gradient(colors: [bottomColor.opacity(0.30), bottomColor.opacity(0.02)]),
+                startPoint: .zero,
+                endPoint: CGPoint(x: 0, y: size.height)
+            ))
+
+            stroke(line: stackedLine, color: topColor, in: context)
+            stroke(line: bottomLine, color: bottomColor, in: context)
+        }
+    }
+
+    private func stroke(line: Path, color: Color, in context: GraphicsContext) {
+        if theme.glowStrength > 0 {
+            var glowContext = context
+            glowContext.addFilter(.shadow(color: color.opacity(theme.glowStrength), radius: 4))
+            glowContext.stroke(line, with: .color(color), lineWidth: 1.5)
+        } else {
+            context.stroke(line, with: .color(color), lineWidth: 1.5)
         }
     }
 }
@@ -289,7 +319,10 @@ public struct SegmentedRing: View {
 /// iStat-style mirrored network histogram: upload bars rise above a center
 /// axis, download bars hang below it. Shared scale, capacity-based density,
 /// newest at the right edge.
-public struct MirroredBarHistory: View {
+/// Mirrored two-series line chart around a center axis (up above, down
+/// below), sparkline-style fills toward the axis. Capacity-based density,
+/// newest at the right.
+public struct MirroredAreaHistory: View {
     @Environment(\.theme) private var theme
     let pairs: [(up: Double, down: Double)]
     let capacity: Int
@@ -310,30 +343,41 @@ public struct MirroredBarHistory: View {
                 Path(CGRect(x: 0, y: centerY - 0.5, width: size.width, height: 1)),
                 with: .color(theme.track.color)
             )
-            guard !pairs.isEmpty else { return }
+            guard pairs.count > 1 else { return }
             let top = max(pairs.map(\.up).max() ?? 0, pairs.map(\.down).max() ?? 0, 1)
-            let gap: CGFloat = 1
-            let barW = max((size.width - gap * CGFloat(capacity - 1)) / CGFloat(capacity), 1)
-            let startX = size.width - CGFloat(pairs.count) * (barW + gap) + gap
+            let stepX = size.width / CGFloat(max(capacity - 1, 1))
+            let startX = size.width - CGFloat(pairs.count - 1) * stepX
             let half = centerY - 1
 
-            for (i, pair) in pairs.enumerated() {
-                let x = startX + CGFloat(i) * (barW + gap)
-                let upH = half * CGFloat(min(pair.up / top, 1))
-                let downH = half * CGFloat(min(pair.down / top, 1))
-                if upH > 0.4 {
-                    context.fill(
-                        Path(CGRect(x: x, y: centerY - 1 - upH, width: barW, height: upH)),
-                        with: .color(upColor)
+            func draw(_ series: [Double], sign: CGFloat, color: Color) {
+                var line = Path()
+                for (i, value) in series.enumerated() {
+                    let point = CGPoint(
+                        x: startX + CGFloat(i) * stepX,
+                        y: centerY + sign * (1 + half * CGFloat(min(value / top, 1)))
                     )
+                    i == 0 ? line.move(to: point) : line.addLine(to: point)
                 }
-                if downH > 0.4 {
-                    context.fill(
-                        Path(CGRect(x: x, y: centerY + 1, width: barW, height: downH)),
-                        with: .color(downColor)
-                    )
+                var fill = line
+                fill.addLine(to: CGPoint(x: size.width, y: centerY))
+                fill.addLine(to: CGPoint(x: startX, y: centerY))
+                fill.closeSubpath()
+                context.fill(fill, with: .linearGradient(
+                    Gradient(colors: [color.opacity(0.30), color.opacity(0.02)]),
+                    startPoint: CGPoint(x: 0, y: sign < 0 ? 0 : size.height),
+                    endPoint: CGPoint(x: 0, y: centerY)
+                ))
+                if theme.glowStrength > 0 {
+                    var glowContext = context
+                    glowContext.addFilter(.shadow(color: color.opacity(theme.glowStrength), radius: 4))
+                    glowContext.stroke(line, with: .color(color), lineWidth: 1.5)
+                } else {
+                    context.stroke(line, with: .color(color), lineWidth: 1.5)
                 }
             }
+
+            draw(pairs.map(\.up), sign: -1, color: upColor)
+            draw(pairs.map(\.down), sign: 1, color: downColor)
         }
     }
 }

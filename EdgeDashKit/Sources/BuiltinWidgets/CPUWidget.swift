@@ -144,7 +144,7 @@ private struct CPUView: View {
     /// 2×2 / 4×2: histogram + legend + core rings + processes + load line.
     @ViewBuilder private var fullLayout: some View {
         if config.showHistory {
-            StackedBarHistory(
+            StackedAreaHistory(
                 pairs: splitHistory,
                 capacity: breakdown.history.capacity,
                 bottomColor: theme.accent.color,
@@ -170,7 +170,7 @@ private struct CPUView: View {
     /// 1×1 / 2×1: histogram + single combined core-ring row + legend.
     @ViewBuilder private var compactLayout: some View {
         if config.showHistory {
-            StackedBarHistory(
+            StackedAreaHistory(
                 pairs: splitHistory,
                 capacity: breakdown.history.capacity,
                 bottomColor: theme.accent.color,
