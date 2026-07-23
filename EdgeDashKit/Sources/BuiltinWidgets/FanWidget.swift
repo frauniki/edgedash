@@ -40,6 +40,13 @@ private struct FanView: View {
         return values.sorted { $0.key < $1.key }.map { (name: $0.key, rpm: $0.value) }
     }
 
+    /// Fastest-fan RPM over time (composite history isn't scalarizable).
+    private var rpmHistory: [Double] {
+        fans.history.compactMap { point in
+            if case .composite(let values) = point.value { values.values.max() } else { nil }
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             WidgetTitle(text: "FANS", value: rows.first.map { String(format: "%.0f", $0.rpm) })
@@ -54,7 +61,13 @@ private struct FanView: View {
                         fanRow(row)
                     }
                 }
-                .frame(maxHeight: .infinity, alignment: .top)
+                SparklineView(
+                    values: rpmHistory,
+                    capacity: fans.history.capacity,
+                    maxValue: config.maxRPM,
+                    color: theme.accent.color
+                )
+                .frame(maxHeight: .infinity)
             }
         }
         .padding(14)
