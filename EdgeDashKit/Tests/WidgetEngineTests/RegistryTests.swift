@@ -56,6 +56,15 @@ private struct FakeWidget: WidgetDefinition {
         #expect(definition.requiredMetrics(configData: nil).count == 1)
     }
 
+    @Test func servicesResolveByType() {
+        final class ServiceA { let value = 1 }
+        final class ServiceB {}
+        let services = WidgetServices()
+        services.register(ServiceA())
+        #expect(services.resolve(ServiceA.self)?.value == 1)
+        #expect(services.resolve(ServiceB.self) == nil)
+    }
+
     @Test func pageMetricsUnionSkipsUnknownTypes() {
         let registry = WidgetRegistry()
         registry.register(FakeWidget.self)

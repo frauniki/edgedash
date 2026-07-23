@@ -28,6 +28,7 @@ targets:
         LSUIElement: true
         LSMinimumSystemVersion: "15.0"
         NSInputMonitoringUsageDescription: EdgeDash reads the XENEON EDGE touch panel directly to provide on-screen touch controls without moving your cursor.
+        NSAppleEventsUsageDescription: EdgeDash controls the Music app to show and operate the now-playing widget on your dashboard.
         NSHumanReadableCopyright: © 2026 frauniki
     settings:
       base:

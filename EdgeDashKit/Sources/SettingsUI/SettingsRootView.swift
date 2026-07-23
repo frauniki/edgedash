@@ -8,6 +8,7 @@ import WidgetEngine
     public let configStore: ConfigStore
     public let registry: WidgetRegistry
     public let hub: MetricHub
+    public let services: WidgetServices?
     public let debugMetricIDs: [MetricID]
     public let touchCapture: () -> TouchDeviceCapture?
     public let touchRouter: TouchRouter
@@ -20,6 +21,7 @@ import WidgetEngine
         configStore: ConfigStore,
         registry: WidgetRegistry,
         hub: MetricHub,
+        services: WidgetServices? = nil,
         debugMetricIDs: [MetricID],
         touchCapture: @escaping () -> TouchDeviceCapture?,
         touchRouter: TouchRouter,
@@ -31,6 +33,7 @@ import WidgetEngine
         self.configStore = configStore
         self.registry = registry
         self.hub = hub
+        self.services = services
         self.debugMetricIDs = debugMetricIDs
         self.touchCapture = touchCapture
         self.touchRouter = touchRouter
@@ -78,7 +81,12 @@ public struct SettingsRootView: View {
         } detail: {
             switch pane {
             case .dashboard:
-                DashboardSettingsView(configStore: deps.configStore, registry: deps.registry, hub: deps.hub)
+                DashboardSettingsView(
+                    configStore: deps.configStore,
+                    registry: deps.registry,
+                    hub: deps.hub,
+                    services: deps.services
+                )
             case .display:
                 DisplaySettingsView(
                     configStore: deps.configStore,

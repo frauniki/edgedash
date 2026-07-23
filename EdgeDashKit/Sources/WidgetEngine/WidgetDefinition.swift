@@ -32,14 +32,33 @@ public protocol WidgetDefinition {
     @MainActor static func makeConfigView(config: Binding<Config>, context: WidgetContext) -> AnyView
 }
 
+/// Non-metric data sources for widgets (media controllers, agent feeds, …),
+/// keyed by type. Metrics flow through MetricHub; anything that can't be a
+/// MetricValue is registered here by the app and resolved by widget views.
+@MainActor public final class WidgetServices {
+    private var storage: [ObjectIdentifier: Any] = [:]
+
+    public init() {}
+
+    public func register<T>(_ service: T) {
+        storage[ObjectIdentifier(T.self)] = service
+    }
+
+    public func resolve<T>(_ type: T.Type) -> T? {
+        storage[ObjectIdentifier(type)] as? T
+    }
+}
+
 /// Per-instance environment handed to widget views.
 public struct WidgetContext {
     public let hub: MetricHub
     public let size: GridSize
+    public let services: WidgetServices
 
-    public init(hub: MetricHub, size: GridSize) {
+    @MainActor public init(hub: MetricHub, size: GridSize, services: WidgetServices? = nil) {
         self.hub = hub
         self.size = size
+        self.services = services ?? WidgetServices()
     }
 }
 

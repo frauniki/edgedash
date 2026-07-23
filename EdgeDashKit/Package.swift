@@ -9,7 +9,7 @@ let package = Package(
             name: "EdgeDashKit",
             targets: [
                 "EdgeCore", "EdgeMetrics", "SMCBridge", "EdgeDisplay",
-                "EdgeTouch", "WidgetEngine", "BuiltinWidgets", "SettingsUI",
+                "EdgeTouch", "WidgetEngine", "BuiltinWidgets", "MediaWidgets", "SettingsUI",
             ]
         ),
         .executable(name: "touch-spike", targets: ["TouchSpike"]),
@@ -22,6 +22,11 @@ let package = Package(
         .target(name: "EdgeTouch", dependencies: ["EdgeCore"]),
         .target(name: "WidgetEngine", dependencies: ["EdgeCore"]),
         .target(name: "BuiltinWidgets", dependencies: ["WidgetEngine", "EdgeMetrics", "SMCBridge", "EdgeTouch"]),
+        .target(
+            name: "MediaWidgets",
+            dependencies: ["WidgetEngine", "EdgeTouch"],
+            linkerSettings: [.linkedFramework("ScriptingBridge")]
+        ),
         .target(name: "SettingsUI", dependencies: ["WidgetEngine", "EdgeCore", "EdgeTouch"]),
         .executableTarget(
             name: "TouchSpike",
@@ -35,5 +40,6 @@ let package = Package(
         .testTarget(name: "EdgeMetricsTests", dependencies: ["EdgeMetrics"]),
         .testTarget(name: "EdgeTouchTests", dependencies: ["EdgeTouch"]),
         .testTarget(name: "WidgetEngineTests", dependencies: ["WidgetEngine"]),
+        .testTarget(name: "MediaWidgetsTests", dependencies: ["MediaWidgets"]),
     ]
 )

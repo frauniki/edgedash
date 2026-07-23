@@ -9,14 +9,16 @@ public struct DashboardSettingsView: View {
     private let configStore: ConfigStore
     private let registry: WidgetRegistry
     private let hub: MetricHub
+    private let services: WidgetServices?
 
     @State private var selectedPageID: UUID?
     @State private var selectedPlacementID: UUID?
 
-    public init(configStore: ConfigStore, registry: WidgetRegistry, hub: MetricHub) {
+    public init(configStore: ConfigStore, registry: WidgetRegistry, hub: MetricHub, services: WidgetServices? = nil) {
         self.configStore = configStore
         self.registry = registry
         self.hub = hub
+        self.services = services
     }
 
     private var config: DashboardConfig { configStore.config }
@@ -115,7 +117,7 @@ public struct DashboardSettingsView: View {
             let theme = BuiltinThemes.theme(for: config.themeID)
             ZStack {
                 theme.pageBackground.color
-                DashboardPageView(page: page, registry: registry, hub: hub)
+                DashboardPageView(page: page, registry: registry, hub: hub, services: services)
                     .environment(\.colorScheme, .dark)
                     .environment(\.theme, theme)
             }
@@ -259,7 +261,7 @@ public struct DashboardSettingsView: View {
                                 updatePlacement(placement.id, in: page) { $0.configData = newData }
                             }
                         ),
-                        context: WidgetContext(hub: hub, size: placement.frame.size)
+                        context: WidgetContext(hub: hub, size: placement.frame.size, services: services)
                     )
                 }
                 .padding(12)

@@ -7,11 +7,13 @@ public struct DashboardRootView: View {
     private let config: DashboardConfig
     private let registry: WidgetRegistry
     private let hub: MetricHub
+    private let services: WidgetServices?
 
-    public init(config: DashboardConfig, registry: WidgetRegistry, hub: MetricHub) {
+    public init(config: DashboardConfig, registry: WidgetRegistry, hub: MetricHub, services: WidgetServices? = nil) {
         self.config = config
         self.registry = registry
         self.hub = hub
+        self.services = services
     }
 
     private var activePage: DashboardPage? {
@@ -23,7 +25,7 @@ public struct DashboardRootView: View {
         ZStack {
             theme.pageBackground.color
             if let page = activePage {
-                DashboardPageView(page: page, registry: registry, hub: hub)
+                DashboardPageView(page: page, registry: registry, hub: hub, services: services)
                     .id(page.id)
                     .transition(.opacity)
                 if config.pages.count > 1 {
@@ -53,11 +55,13 @@ public struct DashboardPageView: View {
     let page: DashboardPage
     let registry: WidgetRegistry
     let hub: MetricHub
+    let services: WidgetServices?
 
-    public init(page: DashboardPage, registry: WidgetRegistry, hub: MetricHub) {
+    public init(page: DashboardPage, registry: WidgetRegistry, hub: MetricHub, services: WidgetServices? = nil) {
         self.page = page
         self.registry = registry
         self.hub = hub
+        self.services = services
     }
 
     public var body: some View {
@@ -90,7 +94,7 @@ public struct DashboardPageView: View {
             if let definition = registry.definition(for: placement.type) {
                 definition.makeView(
                     configData: placement.configData,
-                    context: WidgetContext(hub: hub, size: placement.frame.size)
+                    context: WidgetContext(hub: hub, size: placement.frame.size, services: services)
                 )
             } else {
                 UnknownWidgetView(type: placement.type)

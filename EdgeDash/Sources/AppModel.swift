@@ -1,5 +1,6 @@
 import BuiltinWidgets
 import EdgeCore
+import MediaWidgets
 import EdgeDisplay
 import EdgeMetrics
 import EdgeTouch
@@ -16,6 +17,8 @@ import WidgetEngine
     let engine = MetricsEngine()
     let registry = WidgetRegistry()
     let touchRouter = TouchRouter()
+    let widgetServices = WidgetServices()
+    let musicPlayer = MusicPlayerController(transport: AppleMusicTransport())
     private(set) var touchCapture: TouchDeviceCapture?
     private let keepAwake = KeepAwakeController()
     let configStore = ConfigStore(defaultConfig: DashboardConfig(pages: BuiltinWidgets.starterPages()))
@@ -36,6 +39,8 @@ import WidgetEngine
 
     init() {
         BuiltinWidgets.registerAll(in: registry)
+        MediaWidgets.registerAll(in: registry)
+        widgetServices.register(musicPlayer)
 
         display.onStateChange = { [weak self] in self?.sync() }
         display.selection = configStore.config.display // manual pick persists
@@ -166,6 +171,7 @@ import WidgetEngine
             configStore: configStore,
             registry: registry,
             hub: hub,
+            services: widgetServices,
             debugMetricIDs: debugMetricIDs,
             touchCapture: { [weak self] in self?.touchCapture },
             touchRouter: touchRouter,
@@ -198,6 +204,19 @@ import WidgetEngine
             wanted.formUnion(debugMetricIDs) // Debug tab shows everything
         }
         Task { await engine.setActiveMetrics(wanted) }
+        refreshMediaService(activePage: page)
+    }
+
+    /// Media polling mirrors the metric gating: run only while a now-playing
+    /// widget can actually be seen — on the visible dashboard's active page,
+    /// or anywhere in the config while settings previews pages.
+    private func refreshMediaService(activePage: DashboardPage?) {
+        let hasWidget = { (page: DashboardPage) in
+            page.placements.contains { $0.type == NowPlayingWidget.typeID }
+        }
+        let onDashboard = dashboardVisible && (activePage.map(hasWidget) ?? false)
+        let inSettings = settingsVisible && configStore.config.pages.contains(where: hasWidget)
+        musicPlayer.setActive(onDashboard || inSettings)
     }
 
     /// Sample only while someone is looking: dashboard on a screen or the
@@ -220,7 +239,8 @@ struct DashboardHost: View {
         DashboardRootView(
             config: model.configStore.config,
             registry: model.registry,
-            hub: model.hub
+            hub: model.hub,
+            services: model.widgetServices
         )
         // Order matters: .environment only flows inward, so the swipe
         // target must sit INSIDE the router environment to see it.

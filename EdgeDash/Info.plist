@@ -24,6 +24,8 @@
 	<string>15.0</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>EdgeDash controls the Music app to show and operate the now-playing widget on your dashboard.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 frauniki</string>
 	<key>NSInputMonitoringUsageDescription</key>
