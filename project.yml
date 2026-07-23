@@ -1,0 +1,36 @@
+name: EdgeDash
+options:
+  bundleIdPrefix: jp.sinoa.edgedash
+  deploymentTarget:
+    macOS: "15.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    DEVELOPMENT_TEAM: KARATP3NF4
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: "6.0"
+packages:
+  EdgeDashKit:
+    path: EdgeDashKit
+targets:
+  EdgeDash:
+    type: application
+    platform: macOS
+    sources:
+      - EdgeDash/Sources
+    dependencies:
+      - package: EdgeDashKit
+        product: EdgeDashKit
+    info:
+      path: EdgeDash/Info.plist
+      properties:
+        CFBundleDisplayName: EdgeDash
+        LSUIElement: true
+        LSMinimumSystemVersion: "15.0"
+        NSInputMonitoringUsageDescription: EdgeDash reads the XENEON EDGE touch panel directly to provide on-screen touch controls without moving your cursor.
+        NSHumanReadableCopyright: © 2026 frauniki
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: jp.sinoa.edgedash.app
+        ENABLE_HARDENED_RUNTIME: YES
+        ENABLE_APP_SANDBOX: NO

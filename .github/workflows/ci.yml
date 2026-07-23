@@ -1,0 +1,22 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package tests
+        run: swift test --package-path EdgeDashKit
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        run: xcodegen
+      - name: Build app (unsigned)
+        run: >
+          xcodebuild -project EdgeDash.xcodeproj -scheme EdgeDash
+          -configuration Debug -destination 'platform=macOS'
+          CODE_SIGNING_ALLOWED=NO build

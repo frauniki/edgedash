@@ -1,0 +1,42 @@
+@testable import SMCBridge
+import Testing
+
+@Suite struct SMCBridgeTests {
+    @Test func fourCCEncoding() {
+        #expect(SMCConnection.fourCC("FNum") == 0x464E_756D)
+        #expect(SMCConnection.fourCC("F0Ac") == 0x4630_4163)
+        #expect(SMCConnection.fourCC("toolong") == nil)
+        #expect(SMCConnection.fourCC("ab") == nil)
+    }
+
+    @Test func floatDecoding() {
+        // "flt " little-endian: 1500.0f
+        let bits = Float(1500).bitPattern
+        let bytes = [UInt8(bits & 0xFF), UInt8((bits >> 8) & 0xFF), UInt8((bits >> 16) & 0xFF), UInt8((bits >> 24) & 0xFF)]
+        #expect(SMCConnection.decodeFloat(bytes: bytes, type: SMCConnection.fourCC("flt ")!) == 1500)
+        #expect(SMCConnection.decodeFloat(bytes: [3], type: SMCConnection.fourCC("ui8 ")!) == 3)
+        #expect(SMCConnection.decodeFloat(bytes: [0x0B, 0xB8], type: SMCConnection.fourCC("ui16")!) == 3000)
+        #expect(SMCConnection.decodeFloat(bytes: [], type: 0) == nil)
+    }
+
+    // Live smoke tests on this machine (M3 Max MacBook Pro: has sensors and fans).
+
+    @Test func liveTemperatureSensors() {
+        let sensors = HIDTemperatureSensors.readAll()
+        #expect(!sensors.isEmpty, "expected AppleVendor temperature sensors on Apple Silicon")
+        // Sanity: values in plausible range already filtered; at least one > 10 °C.
+        #expect(sensors.values.contains { $0 > 10 })
+    }
+
+    @Test func liveFanReadout() throws {
+        let count = SMCBridge.fanCount()
+        #expect(count >= 0)
+        if count > 0 {
+            let samples = try SMCFanReader().read()
+            guard case .composite(let fans)? = samples.first?.value else {
+                Issue.record("fan reader returned nothing despite FNum > 0"); return
+            }
+            #expect(fans.count == count)
+        }
+    }
+}
