@@ -29,6 +29,16 @@ import Testing
         #expect(sensors.values.contains { $0 > 10 })
     }
 
+    @Test func paramStructMatchesKernelLayout() {
+        // 76 bytes (Swift's natural packing) makes AppleSMC reject every
+        // call with kIOReturnBadArgument. Regression-pin the C layout.
+        #expect(MemoryLayout<SMCParamStruct>.stride == 80)
+        #expect(MemoryLayout<SMCParamStruct>.offset(of: \.keyInfoDataSize) == 28)
+        #expect(MemoryLayout<SMCParamStruct>.offset(of: \.result) == 40)
+        #expect(MemoryLayout<SMCParamStruct>.offset(of: \.data8) == 42)
+        #expect(MemoryLayout<SMCParamStruct>.offset(of: \.bytes) == 48)
+    }
+
     @Test func livePowerReadout() throws {
         let reader = SMCPowerReader()
         _ = try reader.read() // seed the energy-model delta

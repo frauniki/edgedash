@@ -6,27 +6,30 @@
 import Foundation
 import IOKit
 
+/// MUST be exactly 80 bytes to match the kernel's C struct. Swift packs a
+/// nested 9-byte struct tighter than C does (size vs stride), which shifted
+/// every following field by 3 bytes and made AppleSMC reject ALL calls with
+/// kIOReturnBadArgument — hence the explicit padding fields.
 struct SMCParamStruct {
-    var key: UInt32 = 0
-    var vers: (UInt8, UInt8, UInt8, UInt8, UInt16) = (0, 0, 0, 0, 0)
-    var pLimitData: (UInt16, UInt16, UInt32, UInt32, UInt32) = (0, 0, 0, 0, 0)
-    var keyInfo: SMCKeyInfo = SMCKeyInfo()
-    var result: UInt8 = 0
-    var status: UInt8 = 0
-    var data8: UInt8 = 0
-    var data32: UInt32 = 0
-    var bytes: (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
+    var key: UInt32 = 0                                                  // 0
+    var vers: (UInt8, UInt8, UInt8, UInt8, UInt16) = (0, 0, 0, 0, 0)     // 4
+    private var pad0: UInt16 = 0                                         // 10
+    var pLimitData: (UInt16, UInt16, UInt32, UInt32, UInt32) = (0, 0, 0, 0, 0) // 12
+    var keyInfoDataSize: UInt32 = 0                                      // 28
+    var keyInfoDataType: UInt32 = 0                                      // 32
+    var keyInfoDataAttributes: UInt8 = 0                                 // 36
+    private var pad1: (UInt8, UInt8, UInt8) = (0, 0, 0)                  // 37
+    var result: UInt8 = 0                                                // 40
+    var status: UInt8 = 0                                                // 41
+    var data8: UInt8 = 0                                                 // 42
+    private var pad2: UInt8 = 0                                          // 43
+    var data32: UInt32 = 0                                               // 44
+    var bytes: (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,  // 48
                 UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
                 UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
                 UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8) =
         (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-
-    struct SMCKeyInfo {
-        var dataSize: UInt32 = 0
-        var dataType: UInt32 = 0
-        var dataAttributes: UInt8 = 0
-    }
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)                // = 80
 }
 
 private let kSMCHandleYPCEvent: UInt32 = 2
@@ -62,13 +65,13 @@ final class SMCConnection {
 
         var read = SMCParamStruct()
         read.key = keyCode
-        read.keyInfo.dataSize = infoResult.keyInfo.dataSize
+        read.keyInfoDataSize = infoResult.keyInfoDataSize
         read.data8 = kSMCReadKey
         guard let readResult = call(read), readResult.result == 0 else { return nil }
 
-        let size = Int(min(infoResult.keyInfo.dataSize, 32))
+        let size = Int(min(infoResult.keyInfoDataSize, 32))
         let bytes = withUnsafeBytes(of: readResult.bytes) { Array($0.prefix(size)) }
-        return (bytes, infoResult.keyInfo.dataType)
+        return (bytes, infoResult.keyInfoDataType)
     }
 
     private func call(_ input: SMCParamStruct) -> SMCParamStruct? {
