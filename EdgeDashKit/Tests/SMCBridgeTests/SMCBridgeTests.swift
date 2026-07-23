@@ -29,6 +29,19 @@ import Testing
         #expect(sensors.values.contains { $0 > 10 })
     }
 
+    @Test func livePowerReadout() throws {
+        let reader = SMCPowerReader()
+        _ = try reader.read() // seed the energy-model delta
+        usleep(400_000)
+        let samples = try reader.read()
+        if case .scalar(let watts)? = samples.first?.value {
+            print("power watts = \(watts)")
+            #expect(watts > 0.5 && watts < 500)
+        } else {
+            print("power unavailable on this machine")
+        }
+    }
+
     @Test func liveCoreClockSecondReadHasFrequencies() throws {
         let reader = CoreClockReader()
         _ = try reader.read() // seed sample

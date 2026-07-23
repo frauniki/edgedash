@@ -48,11 +48,14 @@ public struct SMCTemperatureReader: MetricReader {
     }
 }
 
-/// Total system power draw from the SMC "PSTR" key (watts, Apple Silicon).
-/// Feature-detected like everything in this module.
+/// Power draw in watts. Primary source is the SMC "PSTR" key (whole-system,
+/// where it exists); machines without it (e.g. M3 Max/macOS 26) fall back to
+/// the IOReport Energy Model counters — SoC power (CPU+GPU+ANE+DRAM), the
+/// same numbers powermetrics reports, readable without root.
 public final class SMCPowerReader: MetricReader, @unchecked Sendable {
     private var smc: SMCConnection? // engine calls read() serially
     private var openAttempted = false
+    private var previousEnergy: (sample: CFDictionary, at: Date)?
 
     public init() {}
 
@@ -64,12 +67,24 @@ public final class SMCPowerReader: MetricReader, @unchecked Sendable {
             openAttempted = true
             smc = SMCConnection()
         }
-        guard let smc,
-              let (bytes, type) = smc.read(key: "PSTR"),
-              let watts = SMCConnection.decodeFloat(bytes: bytes, type: type),
-              watts > 0, watts < 1000 else {
-            return []
+        if let smc,
+           let (bytes, type) = smc.read(key: "PSTR"),
+           let watts = SMCConnection.decodeFloat(bytes: bytes, type: type),
+           watts > 0, watts < 1000 {
+            return [MetricSample(id: .systemPower, value: .scalar(watts))]
         }
+        return energyModelWatts()
+    }
+
+    private func energyModelWatts() -> [MetricSample] {
+        guard let bridge = IOReportBridge.shared, let current = bridge.energySample() else { return [] }
+        let now = Date()
+        defer { previousEnergy = (current, now) }
+        guard let previousEnergy else { return [] }
+        let elapsed = now.timeIntervalSince(previousEnergy.at)
+        guard elapsed > 0.2,
+              let watts = bridge.energyWatts(previous: previousEnergy.sample, current: current, elapsed: elapsed),
+              watts > 0, watts < 1000 else { return [] }
         return [MetricSample(id: .systemPower, value: .scalar(watts))]
     }
 }

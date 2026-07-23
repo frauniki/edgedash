@@ -68,16 +68,22 @@ final class IOReportBridge: @unchecked Sendable {
     private typealias StateCountFn = @convention(c) (CFDictionary) -> Int32
     private typealias StateNameFn = @convention(c) (CFDictionary, Int32) -> Unmanaged<CFString>?
     private typealias StateResidencyFn = @convention(c) (CFDictionary, Int32) -> Int64
+    private typealias SimpleIntegerFn = @convention(c) (CFDictionary, Int32) -> Int64
 
     private let createSamples: CreateSamplesFn
     private let samplesDelta: SamplesDeltaFn
     private let iterate: IterateFn
     private let channelName: ChannelNameFn
+    private let unitLabel: ChannelNameFn
     private let stateCount: StateCountFn
     private let stateName: StateNameFn
     private let stateResidency: StateResidencyFn
+    private let simpleInteger: SimpleIntegerFn
     private let subscription: UnsafeMutableRawPointer
     private let subscribedChannels: CFMutableDictionary
+    /// Energy Model subscription (SoC power); nil where the group is absent.
+    private let energySubscription: UnsafeMutableRawPointer?
+    private let energyChannels: CFMutableDictionary?
     /// MHz per DVFS index; efficiency = voltage-states1, performance = 5.
     private let eFrequencies: [Double]
     private let pFrequencies: [Double]
@@ -97,9 +103,11 @@ final class IOReportBridge: @unchecked Sendable {
               let samplesDelta = sym("IOReportCreateSamplesDelta", as: SamplesDeltaFn.self),
               let iterate = sym("IOReportIterate", as: IterateFn.self),
               let channelName = sym("IOReportChannelGetChannelName", as: ChannelNameFn.self),
+              let unitLabel = sym("IOReportChannelGetUnitLabel", as: ChannelNameFn.self),
               let stateCount = sym("IOReportStateGetCount", as: StateCountFn.self),
               let stateName = sym("IOReportStateGetNameForIndex", as: StateNameFn.self),
-              let stateResidency = sym("IOReportStateGetResidency", as: StateResidencyFn.self)
+              let stateResidency = sym("IOReportStateGetResidency", as: StateResidencyFn.self),
+              let simpleInteger = sym("IOReportSimpleGetIntegerValue", as: SimpleIntegerFn.self)
         else { return nil }
 
         guard let channels = copyChannels(
@@ -113,21 +121,66 @@ final class IOReportBridge: @unchecked Sendable {
         let pFrequencies = Self.dvfsTableMHz(property: "voltage-states5-sram")
         guard !eFrequencies.isEmpty, !pFrequencies.isEmpty else { return nil }
 
+        // Energy Model (power) is independent — missing is fine.
+        var energySubscription: UnsafeMutableRawPointer?
+        var energyChannels: CFMutableDictionary?
+        if let channels = copyChannels("Energy Model" as CFString, nil, 0, 0, 0)?.takeRetainedValue() {
+            var subbedEnergy: Unmanaged<CFMutableDictionary>?
+            if let sub = createSubscription(nil, channels, &subbedEnergy, 0, nil),
+               let dict = subbedEnergy?.takeRetainedValue() {
+                energySubscription = sub
+                energyChannels = dict
+            }
+        }
+
         self.createSamples = createSamples
         self.samplesDelta = samplesDelta
         self.iterate = iterate
         self.channelName = channelName
+        self.unitLabel = unitLabel
         self.stateCount = stateCount
         self.stateName = stateName
         self.stateResidency = stateResidency
+        self.simpleInteger = simpleInteger
         self.subscription = subscription
         self.subscribedChannels = subscribedChannels
+        self.energySubscription = energySubscription
+        self.energyChannels = energyChannels
         self.eFrequencies = eFrequencies
         self.pFrequencies = pFrequencies
     }
 
     func sample() -> CFDictionary? {
         createSamples(subscription, subscribedChannels, nil)?.takeRetainedValue()
+    }
+
+    func energySample() -> CFDictionary? {
+        guard let energySubscription, let energyChannels else { return nil }
+        return createSamples(energySubscription, energyChannels, nil)?.takeRetainedValue()
+    }
+
+    /// SoC watts over the interval: CPU cores + GPU + ANE + DRAM energy
+    /// deltas (unit label decides the scale; other blocks are skipped to
+    /// avoid double counting the memory subsystem).
+    func energyWatts(previous: CFDictionary, current: CFDictionary, elapsed: TimeInterval) -> Double? {
+        guard elapsed > 0, let delta = samplesDelta(previous, current, nil)?.takeRetainedValue() else { return nil }
+        var joules = 0.0
+        iterate(delta) { [self] channel in
+            guard let name = channelName(channel)?.takeUnretainedValue() as String? else { return 0 }
+            let counted = name.hasPrefix("EACC") || name.hasPrefix("PACC")
+                || name.hasPrefix("GPU") || name.hasPrefix("ANE") || name.hasPrefix("DRAM")
+            guard counted else { return 0 }
+            let scale: Double = switch unitLabel(channel)?.takeUnretainedValue() as String? {
+            case "nJ": 1e-9
+            case "uJ", "µJ": 1e-6
+            case "mJ": 1e-3
+            case "J": 1
+            default: 0 // unknown unit: safer to skip than to guess
+            }
+            joules += Double(simpleInteger(channel, 0)) * scale
+            return 0
+        }
+        return joules > 0 ? joules / elapsed : nil
     }
 
     /// One entry per CPU cluster channel (ECPU, PCPU, PCPU1 …).
