@@ -24,7 +24,9 @@ public struct AppearanceSettingsView: View {
                 LabeledContent(String(format: "Opacity %.0f%%", configStore.config.options.backgroundOpacity * 100)) {
                     Slider(value: optionBinding(\.backgroundOpacity), in: 0...1)
                 }
-                Toggle("Blur wallpaper behind", isOn: optionBinding(\.backgroundBlur))
+                LabeledContent(String(format: "Blur %.0f", configStore.config.options.backgroundBlurRadius)) {
+                    Slider(value: optionBinding(\.backgroundBlurRadius), in: 0...40)
+                }
                 Text("Lower the opacity to let the desktop wallpaper on the display show through; blur frosts it.")
                     .font(.caption)
                     .foregroundStyle(.secondary)

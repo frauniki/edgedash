@@ -8,12 +8,20 @@ public struct DashboardRootView: View {
     private let registry: WidgetRegistry
     private let hub: MetricHub
     private let services: WidgetServices?
+    private let screen: NSScreen?
 
-    public init(config: DashboardConfig, registry: WidgetRegistry, hub: MetricHub, services: WidgetServices? = nil) {
+    public init(
+        config: DashboardConfig,
+        registry: WidgetRegistry,
+        hub: MetricHub,
+        services: WidgetServices? = nil,
+        screen: NSScreen? = nil
+    ) {
         self.config = config
         self.registry = registry
         self.hub = hub
         self.services = services
+        self.screen = screen
     }
 
     private var activePage: DashboardPage? {
@@ -23,8 +31,8 @@ public struct DashboardRootView: View {
     public var body: some View {
         let theme = BuiltinThemes.theme(for: config.themeID)
         ZStack {
-            if config.options.backgroundBlur {
-                BehindWindowBlur()
+            if config.options.backgroundBlurRadius > 0 {
+                WallpaperBackground(radius: config.options.backgroundBlurRadius, screen: screen)
             }
             theme.pageBackground.color.opacity(config.options.backgroundOpacity)
             if let page = activePage {
@@ -145,18 +153,55 @@ public struct DashboardPageView: View {
     }
 }
 
-/// Frosted-glass blur of whatever sits behind the dashboard window — on the
-/// EDGE that's the desktop wallpaper.
-struct BehindWindowBlur: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.blendingMode = .behindWindow
-        view.material = .hudWindow
-        view.state = .active // never dim: the dashboard window is never key
-        return view
+/// The display's own wallpaper, re-rendered inside the dashboard with a
+/// user-chosen gaussian blur. NSVisualEffectView can't vary its radius, so we
+/// load the wallpaper image directly (the dashboard covers the whole screen —
+/// the wallpaper is all that's behind it anyway) and blur in SwiftUI.
+struct WallpaperBackground: View {
+    let radius: Double
+    let screen: NSScreen?
+
+    @State private var image: NSImage?
+    @State private var loadedURL: URL?
+    @State private var loadedDate: Date?
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(nsImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .blur(radius: radius, opaque: true)
+                    // Overscan so blur sampling never darkens the edges.
+                    .scaleEffect(1 + radius / 300)
+            } else {
+                Color.black
+            }
+        }
+        .clipped()
+        .task(id: screen?.localizedName) { await watchWallpaper() }
     }
 
-    func updateNSView(_ view: NSVisualEffectView, context: Context) {}
+    /// Reload when the wallpaper file changes (rotation, dynamic desktops).
+    private func watchWallpaper() async {
+        while !Task.isCancelled {
+            reloadIfNeeded()
+            try? await Task.sleep(for: .seconds(30))
+        }
+    }
+
+    private func reloadIfNeeded() {
+        guard let target = screen ?? NSScreen.main,
+              let url = NSWorkspace.shared.desktopImageURL(for: target) else {
+            image = nil
+            return
+        }
+        let date = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        guard url != loadedURL || date != loadedDate else { return }
+        loadedURL = url
+        loadedDate = date
+        image = NSImage(contentsOf: url)
+    }
 }
 
 /// Shared widget frame: gradient surface with a top-lit hairline stroke.

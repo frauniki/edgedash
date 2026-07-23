@@ -64,7 +64,11 @@ import Testing
         let options = try JSONDecoder().decode(GlobalOptions.self, from: legacy)
         #expect(options.keepAwake)
         #expect(options.backgroundOpacity == 1)
-        #expect(!options.backgroundBlur)
+        #expect(options.backgroundBlurRadius == 0)
+
+        // The short-lived boolean form maps to a sensible radius.
+        let boolBlur = Data(#"{"backgroundBlur":true}"#.utf8)
+        #expect(try JSONDecoder().decode(GlobalOptions.self, from: boolBlur).backgroundBlurRadius == 20)
     }
 
     @Test func placementChromeRoundTripsAndDefaultsOn() throws {

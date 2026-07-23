@@ -240,7 +240,8 @@ struct DashboardHost: View {
             config: model.configStore.config,
             registry: model.registry,
             hub: model.hub,
-            services: model.widgetServices
+            services: model.widgetServices,
+            screen: model.display.screen
         )
         // Order matters: .environment only flows inward, so the swipe
         // target must sit INSIDE the router environment to see it.

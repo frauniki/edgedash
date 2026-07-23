@@ -121,25 +121,39 @@ public struct GlobalOptions: Codable, Sendable, Equatable {
     /// Page background opacity 0…1; below 1 the desktop wallpaper behind the
     /// dashboard window shows through.
     public var backgroundOpacity: Double
-    /// Frosted-glass blur of whatever is behind the window (the wallpaper).
-    public var backgroundBlur: Bool
+    /// Gaussian blur radius (pt) applied to the wallpaper backdrop; 0 = off.
+    public var backgroundBlurRadius: Double
 
-    public init(keepAwake: Bool = false, backgroundOpacity: Double = 1, backgroundBlur: Bool = false) {
+    public init(keepAwake: Bool = false, backgroundOpacity: Double = 1, backgroundBlurRadius: Double = 0) {
         self.keepAwake = keepAwake
         self.backgroundOpacity = backgroundOpacity
-        self.backgroundBlur = backgroundBlur
+        self.backgroundBlurRadius = backgroundBlurRadius
     }
 
-    // Manual decoding so configs written before these knobs existed stay valid.
+    // Manual codec so configs written before these knobs existed stay valid
+    // (including the short-lived boolean `backgroundBlur`).
     private enum CodingKeys: String, CodingKey {
-        case keepAwake, backgroundOpacity, backgroundBlur
+        case keepAwake, backgroundOpacity, backgroundBlurRadius, backgroundBlur
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         keepAwake = try container.decodeIfPresent(Bool.self, forKey: .keepAwake) ?? false
         backgroundOpacity = try container.decodeIfPresent(Double.self, forKey: .backgroundOpacity) ?? 1
-        backgroundBlur = try container.decodeIfPresent(Bool.self, forKey: .backgroundBlur) ?? false
+        if let radius = try container.decodeIfPresent(Double.self, forKey: .backgroundBlurRadius) {
+            backgroundBlurRadius = radius
+        } else if (try? container.decodeIfPresent(Bool.self, forKey: .backgroundBlur)) == true {
+            backgroundBlurRadius = 20
+        } else {
+            backgroundBlurRadius = 0
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(keepAwake, forKey: .keepAwake)
+        try container.encode(backgroundOpacity, forKey: .backgroundOpacity)
+        try container.encode(backgroundBlurRadius, forKey: .backgroundBlurRadius)
     }
 }
 
