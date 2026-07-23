@@ -31,8 +31,13 @@ import ScriptingBridge
     @objc optional func artworks() -> SBElementArray
 }
 
+// Artwork payload types are messy: sdef says `data` is a "picture" (NSImage)
+// and `raw data`'s value-type is commented out — SB may hand back NSImage,
+// NSData, or NSAppleEventDescriptor. Declaring Swift `Data` here made the
+// bridge throw doesNotRecognizeSelector (crash), so take `Any` and convert.
 @objc private protocol MusicArtworkSB {
-    @objc optional var rawData: Data { get }
+    @objc optional var rawData: Any { get }
+    @objc optional var data: Any { get }
 }
 
 extension SBApplication: MusicApplicationSB {}
@@ -102,7 +107,21 @@ public final class AppleMusicTransport: MusicTransport, @unchecked Sendable {
                   let first = artworks.firstObject as? SBObject else { return nil }
             // Verify the track didn't change while this fetch was queued.
             if let persistentID, music.currentTrack?.persistentID != persistentID { return nil }
-            return (first as MusicArtworkSB).rawData
+            let artwork = first as MusicArtworkSB
+            return Self.imageData(from: artwork.rawData) ?? Self.imageData(from: artwork.data)
+        }
+    }
+
+    private static func imageData(from value: Any?) -> Data? {
+        switch value {
+        case let data as Data:
+            return data
+        case let image as NSImage:
+            return image.tiffRepresentation
+        case let descriptor as NSAppleEventDescriptor:
+            return descriptor.data.isEmpty ? nil : descriptor.data
+        default:
+            return nil
         }
     }
 
