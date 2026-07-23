@@ -11,7 +11,7 @@ public struct FanWidget: WidgetDefinition {
     }
 
     public static let typeID = WidgetTypeID("edgedash.fan")
-    public static let displayName = "Fans"
+    public static var displayName: String { loc("Fans") }
     public static let category = WidgetCategory.monitoring
     public static let supportedSizes = [
         GridSize(cols: 1, rows: 1), GridSize(cols: 2, rows: 1), GridSize(cols: 2, rows: 2),
@@ -94,7 +94,7 @@ private struct FanConfigView: View {
     var body: some View {
         ConfigForm {
             Stepper(
-                "Max RPM: \(Int(config.maxRPM))",
+                loc("Max RPM: \(Int(config.maxRPM))"),
                 value: $config.maxRPM,
                 in: 1000...12000,
                 step: 500

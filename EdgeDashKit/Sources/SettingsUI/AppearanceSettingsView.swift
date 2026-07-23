@@ -11,7 +11,7 @@ public struct AppearanceSettingsView: View {
 
     public var body: some View {
         Form {
-            Section("Theme") {
+            Section(loc("Theme")) {
                 // The section header already says "Theme" — a labeled row
                 // would repeat it and push the radios to the trailing edge.
                 Picker("", selection: themeBinding) {
@@ -23,20 +23,20 @@ public struct AppearanceSettingsView: View {
                 .labelsHidden()
                 swatches
             }
-            Section("Background") {
+            Section(loc("Background")) {
                 sliderRow(
-                    "Opacity",
+                    loc("Opacity"),
                     value: optionBinding(\.backgroundOpacity),
                     range: 0...1,
                     text: String(format: "%.0f%%", configStore.config.options.backgroundOpacity * 100)
                 )
                 sliderRow(
-                    "Blur",
+                    loc("Blur"),
                     value: optionBinding(\.backgroundBlurRadius),
                     range: 0...40,
                     text: String(format: "%.0f", configStore.config.options.backgroundBlurRadius)
                 )
-                Text("Lower the opacity to let the desktop wallpaper on the display show through; blur frosts it.")
+                Text("Lower the opacity to let the desktop wallpaper on the display show through; blur frosts it.", bundle: Bundle.module)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

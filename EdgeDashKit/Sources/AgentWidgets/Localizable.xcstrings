@@ -1,0 +1,27 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Window" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "期間" } } }
+    },
+    "Rows: %lld" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "行数: %lld" } } }
+    },
+    "Plan limits (5h/weekly)" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "プラン上限(5時間/週)" } } }
+    },
+    "Cost estimate ($, 30 days)" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "コスト推定($、30日)" } } }
+    },
+    "Today's tokens" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "今日のトークン" } } }
+    },
+    "Session titles" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "セッションタイトル" } } }
+    },
+    "Git branch" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "Gitブランチ" } } }
+    }
+  },
+  "version" : "1.0"
+}

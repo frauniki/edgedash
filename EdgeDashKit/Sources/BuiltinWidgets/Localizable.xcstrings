@@ -1,0 +1,129 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Clock" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "時計" } } }
+    },
+    "Network" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ネットワーク" } } }
+    },
+    "Memory" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "メモリ" } } }
+    },
+    "Disk" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ディスク" } } }
+    },
+    "Sensors" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "センサー" } } }
+    },
+    "Fans" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ファン" } } }
+    },
+    "Power" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "電力" } } }
+    },
+    "24-hour" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "24時間表示" } } }
+    },
+    "Show seconds" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "秒を表示" } } }
+    },
+    "Show date" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "日付を表示" } } }
+    },
+    "User/system histogram" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ユーザー/システムのヒストグラム" } } }
+    },
+    "Per-core rings" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "コアごとのリング" } } }
+    },
+    "Load average" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ロードアベレージ" } } }
+    },
+    "Uptime" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "稼働時間" } } }
+    },
+    "Temperature" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "温度" } } }
+    },
+    "Top processes" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "上位プロセス" } } }
+    },
+    "Processes: %lld" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "プロセス数: %lld" } } }
+    },
+    "Color thresholds" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "色のしきい値" } } }
+    },
+    "Warn at %.0f%%" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "警告: %.0f%%" } } }
+    },
+    "Critical at %.0f%%" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "危険: %.0f%%" } } }
+    },
+    "Volume" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ボリューム" } } }
+    },
+    "Capacity ring" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "容量リング" } } }
+    },
+    "Read/write rates" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "読み書き速度" } } }
+    },
+    "Max RPM: %lld" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "最大RPM: %lld" } } }
+    },
+    "History graph" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "履歴グラフ" } } }
+    },
+    "GPU memory" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "GPUメモリ" } } }
+    },
+    "Breakdown" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "内訳" } } }
+    },
+    "Pressure ring" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "プレッシャーリング" } } }
+    },
+    "Swap" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "スワップ" } } }
+    },
+    "Interface / IP address" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "インターフェイス / IPアドレス" } } }
+    },
+    "IPv6 address" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "IPv6アドレス" } } }
+    },
+    "Public IP" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "パブリックIP" } } }
+    },
+    "Peak rates" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ピーク速度" } } }
+    },
+    "Sections" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "セクション" } } }
+    },
+    "Core clock" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "コアクロック" } } }
+    },
+    "Temperatures" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "温度" } } }
+    },
+    "Temperature rows: %lld" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "温度の行数: %lld" } } }
+    },
+    "Fahrenheit" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "華氏(°F)" } } }
+    },
+    "Temperature sensors" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "温度センサー" } } }
+    },
+    "All sensors (hottest first)" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "すべてのセンサー(高温順)" } } }
+    },
+    "No sensors discovered yet" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "センサーはまだ検出されていません" } } }
+    }
+  },
+  "version" : "1.0"
+}

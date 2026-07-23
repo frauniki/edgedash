@@ -14,7 +14,7 @@ public struct NowPlayingWidget: WidgetDefinition {
     }
 
     public static let typeID = WidgetTypeID("edgedash.nowplaying")
-    public static let displayName = "Now Playing"
+    public static var displayName: String { loc("Now Playing") }
     public static let category = WidgetCategory.media
     public static let supportedSizes = [
         GridSize(cols: 1, rows: 1), GridSize(cols: 2, rows: 1),
@@ -447,12 +447,12 @@ private struct NowPlayingConfigView: View {
 
     var body: some View {
         ConfigForm {
-            Toggle("Artwork", isOn: $config.showArtwork)
-            Toggle("Album name", isOn: $config.showAlbum)
-            Toggle("Seek bar", isOn: $config.showSeekBar)
-            Toggle("Volume slider", isOn: $config.showVolume)
-            Toggle("Shuffle & repeat buttons", isOn: $config.showShuffleRepeat)
-            Text("Volume controls the Music app's own volume, not the system output volume.")
+            Toggle(loc("Artwork"), isOn: $config.showArtwork)
+            Toggle(loc("Album name"), isOn: $config.showAlbum)
+            Toggle(loc("Seek bar"), isOn: $config.showSeekBar)
+            Toggle(loc("Volume slider"), isOn: $config.showVolume)
+            Toggle(loc("Shuffle & repeat buttons"), isOn: $config.showShuffleRepeat)
+            Text("Volume controls the Music app's own volume, not the system output volume.", bundle: Bundle.module)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

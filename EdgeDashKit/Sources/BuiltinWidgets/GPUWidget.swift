@@ -76,8 +76,8 @@ private struct GPUConfigView: View {
 
     var body: some View {
         ConfigForm {
-            Toggle("History graph", isOn: $config.showHistory)
-            Toggle("GPU memory", isOn: $config.showMemory)
+            Toggle(loc("History graph"), isOn: $config.showHistory)
+            Toggle(loc("GPU memory"), isOn: $config.showMemory)
         }
     }
 }

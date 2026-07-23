@@ -1,0 +1,39 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Weather" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "天気" } } }
+    },
+    "Location" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "場所" } } }
+    },
+    "Current location" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "現在地" } } }
+    },
+    "Fixed city" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "都市を指定" } } }
+    },
+    "Location access is denied. Allow EdgeDash under System Settings › Privacy & Security › Location Services, or switch to a fixed city." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "位置情報へのアクセスが拒否されています。システム設定 › プライバシーとセキュリティ › 位置情報サービス でEdgeDashを許可するか、都市の指定に切り替えてください。" } } }
+    },
+    "Search city" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "都市を検索" } } }
+    },
+    "No matches" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "見つかりませんでした" } } }
+    },
+    "Search failed — check your connection" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "検索に失敗しました — 接続を確認してください" } } }
+    },
+    "Selected: %@" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "選択中: %@" } } }
+    },
+    "Fahrenheit" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "華氏(°F)" } } }
+    },
+    "Weekly forecast in 1×1" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "1×1でも週間予報を表示" } } }
+    }
+  },
+  "version" : "1.0"
+}

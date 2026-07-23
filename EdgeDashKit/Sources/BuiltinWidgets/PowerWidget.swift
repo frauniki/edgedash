@@ -10,7 +10,7 @@ public struct PowerWidget: WidgetDefinition {
     }
 
     public static let typeID = WidgetTypeID("edgedash.power")
-    public static let displayName = "Power"
+    public static var displayName: String { loc("Power") }
     public static let category = WidgetCategory.monitoring
     public static let supportedSizes = [
         GridSize(cols: 1, rows: 1), GridSize(cols: 2, rows: 1),
@@ -62,7 +62,7 @@ private struct PowerConfigView: View {
 
     var body: some View {
         ConfigForm {
-            Toggle("History graph", isOn: $config.showHistory)
+            Toggle(loc("History graph"), isOn: $config.showHistory)
         }
     }
 }

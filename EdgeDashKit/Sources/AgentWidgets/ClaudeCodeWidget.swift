@@ -368,7 +368,7 @@ private struct ClaudeCodeConfigView: View {
 
     var body: some View {
         ConfigForm {
-            LabeledContent("Window") {
+            LabeledContent(loc("Window")) {
                 HStack(spacing: 8) {
                     Slider(value: $config.windowHours, in: 1...24, step: 1)
                     Text(String(format: "%.0f h", config.windowHours))
@@ -377,12 +377,12 @@ private struct ClaudeCodeConfigView: View {
                         .frame(width: 34, alignment: .trailing)
                 }
             }
-            Stepper("Rows: \(config.maxRows)", value: $config.maxRows, in: 1...12)
-            Toggle("Plan limits (5h/weekly)", isOn: $config.showLimits)
-            Toggle("Cost estimate ($, 30 days)", isOn: $config.showCost)
-            Toggle("Today's tokens", isOn: $config.showTokens)
-            Toggle("Session titles", isOn: $config.showTitles)
-            Toggle("Git branch", isOn: $config.showBranch)
+            Stepper(loc("Rows: \(config.maxRows)"), value: $config.maxRows, in: 1...12)
+            Toggle(loc("Plan limits (5h/weekly)"), isOn: $config.showLimits)
+            Toggle(loc("Cost estimate ($, 30 days)"), isOn: $config.showCost)
+            Toggle(loc("Today's tokens"), isOn: $config.showTokens)
+            Toggle(loc("Session titles"), isOn: $config.showTitles)
+            Toggle(loc("Git branch"), isOn: $config.showBranch)
         }
     }
 }

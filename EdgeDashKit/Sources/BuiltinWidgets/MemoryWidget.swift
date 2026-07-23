@@ -14,7 +14,7 @@ public struct MemoryWidget: WidgetDefinition {
     }
 
     public static let typeID = WidgetTypeID("edgedash.memory")
-    public static let displayName = "Memory"
+    public static var displayName: String { loc("Memory") }
     public static let category = WidgetCategory.monitoring
     public static let supportedSizes = [
         GridSize(cols: 1, rows: 1), GridSize(cols: 2, rows: 1), GridSize(cols: 2, rows: 2),
@@ -198,11 +198,11 @@ private struct MemoryConfigView: View {
 
     var body: some View {
         ConfigForm {
-            Toggle("Breakdown", isOn: $config.showBreakdown)
-            Toggle("Pressure ring", isOn: $config.showPressureRing)
-            Toggle("Swap", isOn: $config.showSwap)
-            Toggle("Top processes", isOn: $config.showProcesses)
-            Stepper("Processes: \(config.processCount)", value: $config.processCount, in: 1...8)
+            Toggle(loc("Breakdown"), isOn: $config.showBreakdown)
+            Toggle(loc("Pressure ring"), isOn: $config.showPressureRing)
+            Toggle(loc("Swap"), isOn: $config.showSwap)
+            Toggle(loc("Top processes"), isOn: $config.showProcesses)
+            Stepper(loc("Processes: \(config.processCount)"), value: $config.processCount, in: 1...8)
         }
     }
 }

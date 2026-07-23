@@ -1,0 +1,141 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Dashboard" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ダッシュボード" } } }
+    },
+    "Display" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ディスプレイ" } } }
+    },
+    "Touch" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "タッチ" } } }
+    },
+    "Appearance" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "外観" } } }
+    },
+    "Debug" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "デバッグ" } } }
+    },
+    "Theme" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "テーマ" } } }
+    },
+    "Background" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "背景" } } }
+    },
+    "Opacity" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "不透明度" } } }
+    },
+    "Blur" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ぼかし" } } }
+    },
+    "Lower the opacity to let the desktop wallpaper on the display show through; blur frosts it." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "不透明度を下げるとディスプレイの壁紙が透けて見えます。ぼかしはすりガラス風になります。" } } }
+    },
+    "Dashboard display" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ダッシュボードのディスプレイ" } } }
+    },
+    "Status" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "状態" } } }
+    },
+    "Auto-detect supported device" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "対応デバイスを自動検出" } } }
+    },
+    "  ✓ supported device" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "  ✓ 対応デバイス" } } }
+    },
+    "Auto-detect finds known devices (XENEON EDGE). Pick a specific display to use any screen." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "自動検出は既知のデバイス(XENEON EDGE)を見つけます。任意の画面を使うには特定のディスプレイを選択してください。" } } }
+    },
+    "Power" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "電源" } } }
+    },
+    "Keep displays awake while dashboard is visible" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ダッシュボード表示中はディスプレイをスリープさせない" } } }
+    },
+    "macOS has no per-display sleep — this keeps ALL displays awake." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "macOSにはディスプレイ単位のスリープがないため、すべてのディスプレイがスリープしなくなります。" } } }
+    },
+    "Touch input" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "タッチ入力" } } }
+    },
+    "Grant Input Monitoring…" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "入力監視を許可…" } } }
+    },
+    "No touch-capable display profile active" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "タッチ対応ディスプレイのプロファイルが有効ではありません" } } }
+    },
+    "Idle" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "待機中" } } }
+    },
+    "Searching for touch controller…" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "タッチコントローラを検索中…" } } }
+    },
+    "Input Monitoring permission required" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "入力監視の許可が必要です" } } }
+    },
+    "Active — %lld interfaces captured exclusively" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "動作中 — %lld個のインターフェイスを占有キャプチャ" } } }
+    },
+    "Shared mode (%lld interfaces) — another touch driver is running (Touchscreen Gestures? iCUE?); the cursor may move on touch. Quit it for full capture." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "共有モード(%lld個のインターフェイス) — 別のタッチドライバが動作しています(Touchscreen Gestures? iCUE?)。タッチでカーソルが動く場合があります。完全にキャプチャするには終了してください。" } } }
+    },
+    "Touch controller not found — is the EDGE's USB cable connected?" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "タッチコントローラが見つかりません — EDGEのUSBケーブルは接続されていますか?" } } }
+    },
+    "Touch test" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "タッチテスト" } } }
+    },
+    "Touch the panel…" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "パネルにタッチしてください…" } } }
+    },
+    "No pages" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ページがありません" } } }
+    },
+    "Currently on the display" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "現在ディスプレイに表示中" } } }
+    },
+    "Show" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "表示" } } }
+    },
+    "Show this page on the display now" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "このページを今すぐディスプレイに表示" } } }
+    },
+    "Page %lld" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ページ %lld" } } }
+    },
+    "Card background" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "カード背景" } } }
+    },
+    "Select a widget" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ウィジェットを選択してください" } } }
+    },
+    "Position" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "位置" } } }
+    },
+    "Size" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "サイズ" } } }
+    },
+    "Col" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "列" } } }
+    },
+    "Row" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "行" } } }
+    },
+    "Monitoring" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "モニタリング" } } }
+    },
+    "Media" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "メディア" } } }
+    },
+    "Shortcut" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ショートカット" } } }
+    },
+    "Agent" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "エージェント" } } }
+    },
+    "Utility" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ユーティリティ" } } }
+    }
+  },
+  "version" : "1.0"
+}

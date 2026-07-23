@@ -22,7 +22,7 @@ public struct DiskWidget: WidgetDefinition {
     }
 
     public static let typeID = WidgetTypeID("edgedash.disk")
-    public static let displayName = "Disk"
+    public static var displayName: String { loc("Disk") }
     public static let category = WidgetCategory.monitoring
     public static let supportedSizes = [
         GridSize(cols: 1, rows: 1), GridSize(cols: 2, rows: 1), GridSize(cols: 2, rows: 2),
@@ -161,13 +161,13 @@ private struct DiskConfigView: View {
 
     var body: some View {
         ConfigForm {
-            Picker("Volume", selection: $config.volumePath) {
+            Picker(loc("Volume"), selection: $config.volumePath) {
                 ForEach(volumes, id: \.path) { volume in
                     Text(volume.name).tag(volume.path)
                 }
             }
-            Toggle("Capacity ring", isOn: $config.showCapacity)
-            Toggle("Read/write rates", isOn: $config.showIO)
+            Toggle(loc("Capacity ring"), isOn: $config.showCapacity)
+            Toggle(loc("Read/write rates"), isOn: $config.showIO)
         }
         .onAppear { volumes = DiskCapacityReader.mountedVolumes() }
     }

@@ -37,7 +37,7 @@ public struct TemperatureWidget: WidgetDefinition {
     }
 
     public static let typeID = WidgetTypeID("edgedash.temperature")
-    public static let displayName = "Sensors"
+    public static var displayName: String { loc("Sensors") }
     public static let category = WidgetCategory.monitoring
     public static let supportedSizes = [
         GridSize(cols: 1, rows: 1), GridSize(cols: 1, rows: 2),
@@ -233,16 +233,16 @@ private struct SensorsConfigView: View {
 
     var body: some View {
         ConfigForm {
-            ConfigSection("Sections") {
-                Toggle("Core clock", isOn: $config.showCoreClock)
-                Toggle("Power", isOn: $config.showPower)
-                Toggle("Fans", isOn: $config.showFans)
-                Toggle("Temperatures", isOn: $config.showTemperatures)
+            ConfigSection(loc("Sections")) {
+                Toggle(loc("Core clock"), isOn: $config.showCoreClock)
+                Toggle(loc("Power"), isOn: $config.showPower)
+                Toggle(loc("Fans"), isOn: $config.showFans)
+                Toggle(loc("Temperatures"), isOn: $config.showTemperatures)
             }
-            Stepper("Temperature rows: \(config.maxRows)", value: $config.maxRows, in: 1...12)
-            Toggle("Fahrenheit", isOn: $config.fahrenheit)
-            ConfigSection("Temperature sensors") {
-                Toggle("All sensors (hottest first)", isOn: Binding(
+            Stepper(loc("Temperature rows: \(config.maxRows)"), value: $config.maxRows, in: 1...12)
+            Toggle(loc("Fahrenheit"), isOn: $config.fahrenheit)
+            ConfigSection(loc("Temperature sensors")) {
+                Toggle(loc("All sensors (hottest first)"), isOn: Binding(
                     get: { config.sensorFilters.isEmpty },
                     set: { all in if all { config.sensorFilters = [] } }
                 ))
@@ -261,7 +261,7 @@ private struct SensorsConfigView: View {
                         .font(.caption)
                     }
                 } else {
-                    Text("No sensors discovered yet")
+                    Text("No sensors discovered yet", bundle: Bundle.module)
                         .foregroundStyle(.secondary)
                 }
             }

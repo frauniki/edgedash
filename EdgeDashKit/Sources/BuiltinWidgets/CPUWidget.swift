@@ -289,18 +289,18 @@ private struct CPUConfigView: View {
 
     var body: some View {
         ConfigForm {
-            Toggle("User/system histogram", isOn: $config.showHistory)
-            Toggle("Per-core rings", isOn: $config.showPerCore)
-            Toggle("Load average", isOn: $config.showLoadAverage)
-            Toggle("Uptime", isOn: $config.showUptime)
-            Toggle("Temperature", isOn: $config.showTemperature)
-            Toggle("Top processes", isOn: $config.showProcesses)
-            Stepper("Processes: \(config.processCount)", value: $config.processCount, in: 1...8)
-            ConfigSection("Color thresholds") {
-                LabeledContent(String(format: "Warn at %.0f%%", config.warnThreshold * 100)) {
+            Toggle(loc("User/system histogram"), isOn: $config.showHistory)
+            Toggle(loc("Per-core rings"), isOn: $config.showPerCore)
+            Toggle(loc("Load average"), isOn: $config.showLoadAverage)
+            Toggle(loc("Uptime"), isOn: $config.showUptime)
+            Toggle(loc("Temperature"), isOn: $config.showTemperature)
+            Toggle(loc("Top processes"), isOn: $config.showProcesses)
+            Stepper(loc("Processes: \(config.processCount)"), value: $config.processCount, in: 1...8)
+            ConfigSection(loc("Color thresholds")) {
+                LabeledContent(String(format: loc("Warn at %.0f%%"), config.warnThreshold * 100)) {
                     Slider(value: $config.warnThreshold, in: 0.3...0.95)
                 }
-                LabeledContent(String(format: "Critical at %.0f%%", config.criticalThreshold * 100)) {
+                LabeledContent(String(format: loc("Critical at %.0f%%"), config.criticalThreshold * 100)) {
                     Slider(value: $config.criticalThreshold, in: 0.5...1.0)
                 }
             }

@@ -1,0 +1,27 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Now Playing" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "再生中" } } }
+    },
+    "Artwork" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "アートワーク" } } }
+    },
+    "Album name" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "アルバム名" } } }
+    },
+    "Seek bar" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "シークバー" } } }
+    },
+    "Volume slider" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "音量スライダー" } } }
+    },
+    "Shuffle & repeat buttons" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "シャッフル/リピートボタン" } } }
+    },
+    "Volume controls the Music app's own volume, not the system output volume." : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "音量はミュージックApp自体の音量を操作します(システムの出力音量ではありません)。" } } }
+    }
+  },
+  "version" : "1.0"
+}

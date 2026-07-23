@@ -40,7 +40,7 @@ public struct DashboardSettingsView: View {
                     miniature(page: page)
                     editor(page: page)
                 } else {
-                    ContentUnavailableView("No pages", systemImage: "rectangle.dashed")
+                    ContentUnavailableView { Label(loc("No pages"), systemImage: "rectangle.dashed") }
                 }
             }
             .padding(12)
@@ -85,7 +85,7 @@ public struct DashboardSettingsView: View {
                         if page.id == (config.activePageID ?? config.pages.first?.id) {
                             Image(systemName: "eye.fill")
                                 .foregroundStyle(.tint)
-                                .help("Currently on the display")
+                                .help(Text("Currently on the display", bundle: Bundle.module))
                         }
                     }
                     .tag(page.id)
@@ -105,13 +105,13 @@ public struct DashboardSettingsView: View {
                 }
                 .disabled(config.pages.count <= 1)
                 Spacer()
-                Button("Show") {
+                Button(loc("Show")) {
                     if let page = selectedPage {
                         configStore.update { $0.activePageID = page.id }
                     }
                 }
                 .disabled(selectedPage == nil)
-                .help("Show this page on the display now")
+                .help(Text("Show this page on the display now", bundle: Bundle.module))
             }
             .buttonStyle(.borderless)
             .padding(8)
@@ -119,7 +119,7 @@ public struct DashboardSettingsView: View {
     }
 
     private func addPage() {
-        let page = DashboardPage(name: "Page \(config.pages.count + 1)")
+        let page = DashboardPage(name: loc("Page \(config.pages.count + 1)"))
         configStore.update { $0.pages.append(page) }
         selectedPageID = page.id
     }
@@ -206,7 +206,7 @@ public struct DashboardSettingsView: View {
             ForEach(WidgetCategory.allCases, id: \.self) { category in
                 let widgets = registry.all.filter { $0.category == category }
                 if !widgets.isEmpty {
-                    Section(category.rawValue.capitalized) {
+                    Section(loc(String.LocalizationValue(category.rawValue.capitalized))) {
                         ForEach(widgets) { definition in
                             Button(definition.displayName) {
                                 addWidget(definition, to: page)
@@ -276,7 +276,7 @@ public struct DashboardSettingsView: View {
                     ) { newFrame in
                         updatePlacement(placement.id, in: page) { $0.frame = newFrame }
                     }
-                    Toggle("Card background", isOn: Binding(
+                    Toggle(loc("Card background"), isOn: Binding(
                         get: {
                             selectedPlacement(in: configStore.config.pages.first { $0.id == page.id } ?? page)?
                                 .chrome ?? true
@@ -300,7 +300,7 @@ public struct DashboardSettingsView: View {
                 .padding(16)
             }
         } else {
-            ContentUnavailableView("Select a widget", systemImage: "slider.horizontal.3")
+            ContentUnavailableView { Label(loc("Select a widget"), systemImage: "slider.horizontal.3") }
         }
     }
 
@@ -471,16 +471,16 @@ private struct PlacementGeometryEditor: View {
     var body: some View {
         Grid(alignment: .leading, verticalSpacing: 6) {
             GridRow {
-                Text("Position").foregroundStyle(.secondary).fixedSize().gridColumnAlignment(.leading)
-                stepper("Col", value: placement.frame.col, range: 0...(grid.cols - placement.frame.size.cols)) {
+                Text("Position", bundle: Bundle.module).foregroundStyle(.secondary).fixedSize().gridColumnAlignment(.leading)
+                stepper(loc("Col"), value: placement.frame.col, range: 0...(grid.cols - placement.frame.size.cols)) {
                     var frame = placement.frame; frame.col = $0; apply(frame)
                 }
-                stepper("Row", value: placement.frame.row, range: 0...(grid.rows - placement.frame.size.rows)) {
+                stepper(loc("Row"), value: placement.frame.row, range: 0...(grid.rows - placement.frame.size.rows)) {
                     var frame = placement.frame; frame.row = $0; apply(frame)
                 }
             }
             GridRow {
-                Text("Size").foregroundStyle(.secondary).fixedSize()
+                Text("Size", bundle: Bundle.module).foregroundStyle(.secondary).fixedSize()
                 sizePicker
             }
         }

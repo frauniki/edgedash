@@ -1,0 +1,15 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Windowed Preview" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "ウインドウでプレビュー" } } }
+    },
+    "Settings…" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "設定…" } } }
+    },
+    "Quit EdgeDash" : {
+      "localizations" : { "ja" : { "stringUnit" : { "state" : "translated", "value" : "EdgeDashを終了" } } }
+    }
+  },
+  "version" : "1.0"
+}

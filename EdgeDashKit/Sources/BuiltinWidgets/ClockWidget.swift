@@ -11,7 +11,7 @@ public struct ClockWidget: WidgetDefinition {
     }
 
     public static let typeID = WidgetTypeID("edgedash.clock")
-    public static let displayName = "Clock"
+    public static var displayName: String { loc("Clock") }
     public static let category = WidgetCategory.utility
     public static let supportedSizes = [
         GridSize(cols: 1, rows: 1), GridSize(cols: 2, rows: 1), GridSize(cols: 2, rows: 2),
@@ -74,9 +74,9 @@ private struct ClockConfigView: View {
 
     var body: some View {
         ConfigForm {
-            Toggle("24-hour", isOn: $config.is24Hour)
-            Toggle("Show seconds", isOn: $config.showSeconds)
-            Toggle("Show date", isOn: $config.showDate)
+            Toggle(loc("24-hour"), isOn: $config.is24Hour)
+            Toggle(loc("Show seconds"), isOn: $config.showSeconds)
+            Toggle(loc("Show date"), isOn: $config.showDate)
         }
     }
 }

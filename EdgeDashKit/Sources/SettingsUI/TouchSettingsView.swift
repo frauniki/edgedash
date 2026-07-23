@@ -31,7 +31,7 @@ public struct TouchSettingsView: View {
     }
 
     @ViewBuilder private var statusSection: some View {
-        GroupBox("Touch input") {
+        GroupBox(loc("Touch input")) {
             HStack(spacing: 10) {
                 Circle()
                     .fill(statusColor)
@@ -39,7 +39,7 @@ public struct TouchSettingsView: View {
                 Text(statusText)
                 Spacer()
                 if capture?.state == .noPermission {
-                    Button("Grant Input Monitoring…") {
+                    Button(loc("Grant Input Monitoring…")) {
                         TouchDeviceCapture.requestPermission()
                         openInputMonitoringSettings()
                     }
@@ -60,19 +60,19 @@ public struct TouchSettingsView: View {
 
     private var statusText: String {
         switch capture?.state {
-        case nil: "No touch-capable display profile active"
-        case .idle: "Idle"
-        case .searching: "Searching for touch controller…"
-        case .noPermission: "Input Monitoring permission required"
-        case .seized(let n): "Active — \(n) interfaces captured exclusively"
+        case nil: loc("No touch-capable display profile active")
+        case .idle: loc("Idle")
+        case .searching: loc("Searching for touch controller…")
+        case .noPermission: loc("Input Monitoring permission required")
+        case .seized(let n): loc("Active — \(n) interfaces captured exclusively")
         case .sharedListen(let n):
-            "Shared mode (\(n) interfaces) — another touch driver is running (Touchscreen Gestures? iCUE?); the cursor may move on touch. Quit it for full capture."
-        case .deviceNotFound: "Touch controller not found — is the EDGE's USB cable connected?"
+            loc("Shared mode (\(n) interfaces) — another touch driver is running (Touchscreen Gestures? iCUE?); the cursor may move on touch. Quit it for full capture.")
+        case .deviceNotFound: loc("Touch controller not found — is the EDGE's USB cable connected?")
         }
     }
 
     @ViewBuilder private var testSection: some View {
-        GroupBox("Touch test") {
+        GroupBox(loc("Touch test")) {
             ZStack {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(Color.black.opacity(0.85))
@@ -94,7 +94,7 @@ public struct TouchSettingsView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                         .padding(6)
                 } else {
-                    Text("Touch the panel…")
+                    Text("Touch the panel…", bundle: Bundle.module)
                         .foregroundStyle(.secondary)
                 }
             }

@@ -55,6 +55,18 @@ public struct SettingsRootView: View {
         case debug = "Debug"
 
         var id: String { rawValue }
+        // rawValue stays English: it doubles as the `--pane` launch-arg key
+        // for scripted screenshots. Display goes through the catalog.
+        var title: String {
+            switch self {
+            case .dashboard: loc("Dashboard")
+            case .display: loc("Display")
+            case .touch: loc("Touch")
+            case .appearance: loc("Appearance")
+            case .debug: loc("Debug")
+            }
+        }
+
         var icon: String {
             switch self {
             case .dashboard: "rectangle.grid.2x2"
@@ -83,14 +95,17 @@ public struct SettingsRootView: View {
 
     public var body: some View {
         NavigationSplitView {
-            List(Pane.allCases, selection: Binding(get: { pane }, set: { pane = $0 ?? .dashboard })) { item in
-                Label(item.rawValue, systemImage: item.icon).tag(item)
+            // Ignore nil writes: the List pushes a nil selection while the
+            // window is being restored, which would stomp the initial pane
+            // (races the --pane dev hook to a coin flip).
+            List(Pane.allCases, selection: Binding(get: { pane }, set: { if let item = $0 { pane = item } })) { item in
+                Label(item.title, systemImage: item.icon).tag(item)
             }
             .navigationSplitViewColumnWidth(160)
         } detail: {
             detailView
                 // Fills the otherwise-empty toolbar band above every pane.
-                .navigationTitle(pane.rawValue)
+                .navigationTitle(pane.title)
         }
         // Dashboard is the widest pane: sidebar + page list + placement list
         // + inspector minimums ≈ 880. A smaller window would force the

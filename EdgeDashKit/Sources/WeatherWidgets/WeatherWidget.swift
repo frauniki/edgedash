@@ -38,7 +38,7 @@ public struct WeatherWidget: WidgetDefinition {
     }
 
     public static let typeID = WidgetTypeID("edgedash.weather")
-    public static let displayName = "Weather"
+    public static var displayName: String { loc("Weather") }
     public static let category = WidgetCategory.utility
     public static let supportedSizes = [
         GridSize(cols: 1, rows: 1), GridSize(cols: 2, rows: 1),
@@ -524,18 +524,18 @@ private struct WeatherConfigView: View {
 
     var body: some View {
         ConfigForm {
-            Picker("Location", selection: $config.mode) {
-                Text("Current location").tag(WeatherWidget.Config.Mode.auto)
-                Text("Fixed city").tag(WeatherWidget.Config.Mode.manual)
+            Picker(loc("Location"), selection: $config.mode) {
+                Text("Current location", bundle: Bundle.module).tag(WeatherWidget.Config.Mode.auto)
+                Text("Fixed city", bundle: Bundle.module).tag(WeatherWidget.Config.Mode.manual)
             }
             if config.mode == .auto {
                 if monitor?.location.state == .denied {
-                    Text("Location access is denied. Allow EdgeDash under System Settings › Privacy & Security › Location Services, or switch to a fixed city.")
+                    Text("Location access is denied. Allow EdgeDash under System Settings › Privacy & Security › Location Services, or switch to a fixed city.", bundle: Bundle.module)
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
             } else {
-                TextField("Search city", text: $query)
+                TextField(loc("Search city"), text: $query)
                     .textFieldStyle(.roundedBorder)
                     .onSubmit(search)
                 if searching {
@@ -568,13 +568,13 @@ private struct WeatherConfigView: View {
                     .buttonStyle(.plain)
                 }
                 if let place = config.place {
-                    Text("Selected: \(place.name)")
+                    Text("Selected: \(place.name)", bundle: Bundle.module)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
-            Toggle("Fahrenheit", isOn: $config.fahrenheit)
-            Toggle("Weekly forecast in 1×1", isOn: $config.compactWeekly)
+            Toggle(loc("Fahrenheit"), isOn: $config.fahrenheit)
+            Toggle(loc("Weekly forecast in 1×1"), isOn: $config.compactWeekly)
         }
     }
 
@@ -587,9 +587,9 @@ private struct WeatherConfigView: View {
             defer { searching = false }
             do {
                 results = try await OpenMeteoClient.geocode(trimmed)
-                if results.isEmpty { searchError = "No matches" }
+                if results.isEmpty { searchError = loc("No matches") }
             } catch {
-                searchError = "Search failed — check your connection"
+                searchError = loc("Search failed — check your connection")
             }
         }
     }

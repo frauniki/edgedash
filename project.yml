@@ -31,6 +31,10 @@ targets:
       path: EdgeDash/Info.plist
       properties:
         CFBundleDisplayName: EdgeDash
+        CFBundleDevelopmentRegion: en
+        # Advertises translations so System Settings offers a per-app
+        # language override for EdgeDash.
+        CFBundleLocalizations: [en, ja]
         LSUIElement: true
         LSMinimumSystemVersion: "15.0"
         NSInputMonitoringUsageDescription: EdgeDash reads the XENEON EDGE touch panel directly to provide on-screen touch controls without moving your cursor.

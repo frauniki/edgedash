@@ -13,7 +13,7 @@ public struct NetworkWidget: WidgetDefinition {
     }
 
     public static let typeID = WidgetTypeID("edgedash.network")
-    public static let displayName = "Network"
+    public static var displayName: String { loc("Network") }
     public static let category = WidgetCategory.monitoring
     public static let supportedSizes = [
         GridSize(cols: 1, rows: 1), GridSize(cols: 2, rows: 1),
@@ -220,10 +220,10 @@ private struct NetworkConfigView: View {
 
     var body: some View {
         ConfigForm {
-            Toggle("Interface / IP address", isOn: $config.showAddress)
-            Toggle("IPv6 address", isOn: $config.showIPv6)
-            Toggle("Public IP", isOn: $config.showPublicIP)
-            Toggle("Peak rates", isOn: $config.showPeaks)
+            Toggle(loc("Interface / IP address"), isOn: $config.showAddress)
+            Toggle(loc("IPv6 address"), isOn: $config.showIPv6)
+            Toggle(loc("Public IP"), isOn: $config.showPublicIP)
+            Toggle(loc("Peak rates"), isOn: $config.showPeaks)
         }
     }
 }

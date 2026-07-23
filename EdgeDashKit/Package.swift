@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "EdgeDashKit",
+    defaultLocalization: "en",
     platforms: [.macOS(.v15)],
     products: [
         .library(
@@ -21,19 +22,33 @@ let package = Package(
         .target(name: "EdgeDisplay", dependencies: ["EdgeCore"]),
         .target(name: "EdgeTouch", dependencies: ["EdgeCore"]),
         .target(name: "WidgetEngine", dependencies: ["EdgeCore"]),
-        .target(name: "BuiltinWidgets", dependencies: ["WidgetEngine", "EdgeMetrics", "SMCBridge", "EdgeTouch"]),
+        .target(
+            name: "BuiltinWidgets",
+            dependencies: ["WidgetEngine", "EdgeMetrics", "SMCBridge", "EdgeTouch"],
+            resources: [.process("Localizable.xcstrings")]
+        ),
         .target(
             name: "MediaWidgets",
             dependencies: ["WidgetEngine", "EdgeTouch"],
+            resources: [.process("Localizable.xcstrings")],
             linkerSettings: [.linkedFramework("ScriptingBridge")]
         ),
-        .target(name: "AgentWidgets", dependencies: ["WidgetEngine", "EdgeTouch"]),
+        .target(
+            name: "AgentWidgets",
+            dependencies: ["WidgetEngine", "EdgeTouch"],
+            resources: [.process("Localizable.xcstrings")]
+        ),
         .target(
             name: "WeatherWidgets",
             dependencies: ["WidgetEngine"],
+            resources: [.process("Localizable.xcstrings")],
             linkerSettings: [.linkedFramework("CoreLocation")]
         ),
-        .target(name: "SettingsUI", dependencies: ["WidgetEngine", "EdgeCore", "EdgeTouch"]),
+        .target(
+            name: "SettingsUI",
+            dependencies: ["WidgetEngine", "EdgeCore", "EdgeTouch"],
+            resources: [.process("Localizable.xcstrings")]
+        ),
         .executableTarget(
             name: "TouchSpike",
             linkerSettings: [

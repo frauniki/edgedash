@@ -33,20 +33,20 @@ public struct DisplaySettingsView: View {
 
     public var body: some View {
         Form {
-            Section("Dashboard display") {
-                LabeledContent("Status", value: statusText)
-                Picker("Display", selection: selectionBinding) {
-                    Text("Auto-detect supported device").tag(Optional<String>.none)
+            Section(loc("Dashboard display")) {
+                LabeledContent(loc("Status"), value: statusText)
+                Picker(loc("Display"), selection: selectionBinding) {
+                    Text("Auto-detect supported device", bundle: Bundle.module).tag(Optional<String>.none)
                     ForEach(choices) { choice in
-                        Text(choice.name + (choice.isProfileMatch ? "  ✓ supported device" : ""))
+                        Text(choice.name + (choice.isProfileMatch ? loc("  ✓ supported device") : ""))
                             .tag(Optional(choice.id))
                     }
                 }
-                .help("Auto-detect finds known devices (XENEON EDGE). Pick a specific display to use any screen.")
+                .help(Text("Auto-detect finds known devices (XENEON EDGE). Pick a specific display to use any screen.", bundle: Bundle.module))
             }
-            Section("Power") {
-                Toggle("Keep displays awake while dashboard is visible", isOn: keepAwakeBinding)
-                Text("macOS has no per-display sleep — this keeps ALL displays awake.")
+            Section(loc("Power")) {
+                Toggle(loc("Keep displays awake while dashboard is visible"), isOn: keepAwakeBinding)
+                Text("macOS has no per-display sleep — this keeps ALL displays awake.", bundle: Bundle.module)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
