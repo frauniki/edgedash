@@ -53,19 +53,18 @@ private struct GPUView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             WidgetTitle(text: "GPU", value: String(format: "%.0f%%", fraction * 100))
-            if size.cols >= 2 || size.rows >= 2 {
-                if config.showHistory {
-                    SparklineView(history: usage.history, maxValue: 1, color: accent)
-                        .frame(maxHeight: .infinity)
-                }
-                if config.showMemory, case .scalar(let bytes)? = memory.latest {
-                    Text(String(format: "MEM %.1f GB", bytes / 1_073_741_824))
-                        .font(.system(size: 13, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(theme.textSecondary.color)
-                }
+            // Same content at every size — a 1×1 cell is as tall as a 2×1.
+            if config.showHistory {
+                SparklineView(history: usage.history, maxValue: 1, color: accent)
+                    .frame(maxHeight: .infinity)
             } else {
                 RingGauge(fraction: fraction, color: accent)
+            }
+            if config.showMemory, case .scalar(let bytes)? = memory.latest {
+                Text(String(format: "MEM %.1f GB", bytes / 1_073_741_824))
+                    .font(.system(size: 13, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(theme.textSecondary.color)
             }
         }
         .padding(14)
