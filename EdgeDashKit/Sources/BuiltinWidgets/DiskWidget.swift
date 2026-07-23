@@ -116,7 +116,7 @@ private struct DiskView: View {
                 VStack(alignment: .leading, spacing: 5) {
                     if config.showCapacity {
                         LabeledRing(fraction: fraction, color: ringColor, label: percentText)
-                            .frame(maxHeight: .infinity)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity) // centered, not hugging the left
                     }
                     if config.showIO {
                         if let ioRates {
