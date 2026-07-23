@@ -8,10 +8,16 @@ public actor ClaudeSessionScanner {
     public struct Snapshot: Sendable, Equatable {
         public var sessions: [AgentSession]
         public var todayTotals: TokenTotals
+        public var stats: UsageStats
 
-        public init(sessions: [AgentSession] = [], todayTotals: TokenTotals = TokenTotals()) {
+        public init(
+            sessions: [AgentSession] = [],
+            todayTotals: TokenTotals = TokenTotals(),
+            stats: UsageStats = UsageStats()
+        ) {
             self.sessions = sessions
             self.todayTotals = todayTotals
+            self.stats = stats
         }
     }
 
@@ -25,7 +31,8 @@ public actor ClaudeSessionScanner {
         var model: String?
         var title: String?
         var lastShape: MessageShape?
-        var tokensByDay: [String: (input: Int, output: Int)] = [:]
+        /// day → model → token classes; feeds both totals and cost estimates.
+        var tokensByDay: [String: [String: TokenCounts]] = [:]
     }
 
     enum MessageShape: Equatable {
@@ -37,7 +44,7 @@ public actor ClaudeSessionScanner {
     }
 
     enum ParsedLine: Equatable {
-        case message(shape: MessageShape, timestamp: Date?, cwd: String?, branch: String?, model: String?, input: Int, output: Int)
+        case message(shape: MessageShape, timestamp: Date?, cwd: String?, branch: String?, model: String?, counts: TokenCounts)
         case title(String)
         case irrelevant
     }
@@ -47,6 +54,8 @@ public actor ClaudeSessionScanner {
     static let midTurnGrace: TimeInterval = 600
     /// Sessions older than this are dropped entirely (widgets filter tighter).
     static let scanWindow: TimeInterval = 24 * 3600
+    /// Files this recent are parsed for cost/token accounting (30-day stats).
+    static let accountingWindow: TimeInterval = 30 * 24 * 3600
 
     private let root: URL
     private var digests: [String: FileDigest] = [:]
@@ -76,8 +85,8 @@ public actor ClaudeSessionScanner {
                       let size = values.fileSize,
                       let mtime = values.contentModificationDate else { continue }
                 let path = file.path
-                // Never start parsing files already outside the window.
-                if digests[path] == nil, now.timeIntervalSince(mtime) > Self.scanWindow { continue }
+                // Never start parsing files already outside the accounting window.
+                if digests[path] == nil, now.timeIntervalSince(mtime) > Self.accountingWindow { continue }
                 seen.insert(path)
 
                 var digest = digests[path] ?? FileDigest()
@@ -102,12 +111,21 @@ public actor ClaudeSessionScanner {
         let today = Self.dayKey(now)
         var totals = TokenTotals()
         var sessions: [AgentSession] = []
+        var byDayModel: [String: [String: TokenCounts]] = [:]
 
         for (path, digest) in digests {
-            if let day = digest.tokensByDay[today], day.input + day.output > 0 {
-                totals.input += day.input
-                totals.output += day.output
-                totals.sessions += 1
+            for (day, models) in digest.tokensByDay {
+                for (model, counts) in models {
+                    byDayModel[day, default: [:]][model, default: TokenCounts()].add(counts)
+                }
+            }
+            if let day = digest.tokensByDay[today] {
+                let counts = day.values.reduce(into: TokenCounts()) { $0.add($1) }
+                if counts.total > 0 {
+                    totals.input += counts.allInput
+                    totals.output += counts.output
+                    totals.sessions += 1
+                }
             }
             guard now.timeIntervalSince(digest.mtime) <= Self.scanWindow else { continue }
             sessions.append(AgentSession(
@@ -121,7 +139,11 @@ public actor ClaudeSessionScanner {
             ))
         }
         sessions.sort { $0.lastActivity > $1.lastActivity }
-        return Snapshot(sessions: sessions, todayTotals: totals)
+        return Snapshot(
+            sessions: sessions,
+            todayTotals: totals,
+            stats: UsageStats.build(byDayModel: byDayModel, now: now, dayKey: Self.dayKey)
+        )
     }
 
     // MARK: - Incremental reading
@@ -162,7 +184,7 @@ public actor ClaudeSessionScanner {
                 timestamp: (object["timestamp"] as? String).flatMap(parseTimestamp),
                 cwd: object["cwd"] as? String,
                 branch: object["gitBranch"] as? String,
-                model: nil, input: 0, output: 0
+                model: nil, counts: TokenCounts()
             )
         case "assistant":
             let message = object["message"] as? [String: Any]
@@ -172,17 +194,19 @@ public actor ClaudeSessionScanner {
             default: .assistantMidTurn // tool_use, stop_sequence, max_tokens…
             }
             let usage = message?["usage"] as? [String: Any]
-            let input = ((usage?["input_tokens"] as? Int) ?? 0)
-                + ((usage?["cache_read_input_tokens"] as? Int) ?? 0)
-                + ((usage?["cache_creation_input_tokens"] as? Int) ?? 0)
+            let counts = TokenCounts(
+                input: (usage?["input_tokens"] as? Int) ?? 0,
+                cacheRead: (usage?["cache_read_input_tokens"] as? Int) ?? 0,
+                cacheWrite: (usage?["cache_creation_input_tokens"] as? Int) ?? 0,
+                output: (usage?["output_tokens"] as? Int) ?? 0
+            )
             return .message(
                 shape: shape,
                 timestamp: (object["timestamp"] as? String).flatMap(parseTimestamp),
                 cwd: object["cwd"] as? String,
                 branch: object["gitBranch"] as? String,
                 model: message?["model"] as? String,
-                input: input,
-                output: (usage?["output_tokens"] as? Int) ?? 0
+                counts: counts
             )
         default:
             return .irrelevant
@@ -193,17 +217,14 @@ public actor ClaudeSessionScanner {
         switch line {
         case .title(let title):
             digest.title = title
-        case .message(let shape, let timestamp, let cwd, let branch, let model, let input, let output):
+        case .message(let shape, let timestamp, let cwd, let branch, let model, let counts):
             digest.lastShape = shape
             if let cwd { digest.cwd = cwd }
             if let branch, branch != "HEAD" { digest.branch = branch }
             if let model { digest.model = model }
-            if input + output > 0, let timestamp {
+            if counts.total > 0, let timestamp {
                 let day = dayKey(timestamp)
-                var totals = digest.tokensByDay[day] ?? (input: 0, output: 0)
-                totals.input += input
-                totals.output += output
-                digest.tokensByDay[day] = totals
+                digest.tokensByDay[day, default: [:]][model ?? "unknown", default: TokenCounts()].add(counts)
             }
         case .irrelevant:
             break

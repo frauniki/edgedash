@@ -81,32 +81,24 @@ private struct FixtureTree {
         return ClaudeSessionScanner.parse(obj)
     }
 
-    @Test func shapesAreClassified() {
-        guard case .message(let shape1, _, _, _, _, _, _) = parsed(assistantLine(stop: "end_turn", timestamp: now)) else {
-            Issue.record("not a message"); return
-        }
-        #expect(shape1 == .assistantEndTurn)
-        guard case .message(let shape2, _, _, _, _, _, _) = parsed(assistantLine(stop: "tool_use", timestamp: now)) else {
-            Issue.record("not a message"); return
-        }
-        #expect(shape2 == .assistantMidTurn)
-        guard case .message(let shape3, _, _, _, _, _, _) = parsed(toolResultLine(timestamp: now)) else {
-            Issue.record("not a message"); return
-        }
-        #expect(shape3 == .toolResult)
-        guard case .message(let shape4, _, _, _, _, _, _) = parsed(userPromptLine(timestamp: now)) else {
-            Issue.record("not a message"); return
-        }
-        #expect(shape4 == .userPrompt)
+    private func shape(of json: String) -> ClaudeSessionScanner.MessageShape? {
+        if case .message(let shape, _, _, _, _, _) = parsed(json) { shape } else { nil }
     }
 
-    @Test func usageIncludesCacheReads() {
-        guard case .message(_, _, _, _, let model, let input, let output) =
+    @Test func shapesAreClassified() {
+        #expect(shape(of: assistantLine(stop: "end_turn", timestamp: now)) == .assistantEndTurn)
+        #expect(shape(of: assistantLine(stop: "tool_use", timestamp: now)) == .assistantMidTurn)
+        #expect(shape(of: toolResultLine(timestamp: now)) == .toolResult)
+        #expect(shape(of: userPromptLine(timestamp: now)) == .userPrompt)
+    }
+
+    @Test func usageSplitsTokenClasses() {
+        guard case .message(_, _, _, _, let model, let counts) =
             parsed(assistantLine(stop: "end_turn", timestamp: now, output: 50, input: 7, cacheRead: 1000)) else {
             Issue.record("not a message"); return
         }
-        #expect(input == 1007)
-        #expect(output == 50)
+        #expect(counts == TokenCounts(input: 7, cacheRead: 1000, cacheWrite: 0, output: 50))
+        #expect(counts.allInput == 1007)
         #expect(model == "claude-fable-5")
     }
 

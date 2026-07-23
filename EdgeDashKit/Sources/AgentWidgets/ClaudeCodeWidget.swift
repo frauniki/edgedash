@@ -11,11 +11,12 @@ public struct ClaudeCodeWidget: WidgetDefinition {
         public var showTitles = true
         public var showBranch = true
         public var showLimits = true
+        public var showCost = true
         public init() {}
 
         // Lenient decoding: adding fields must not reset saved configs.
         private enum CodingKeys: String, CodingKey {
-            case windowHours, maxRows, showTokens, showTitles, showBranch, showLimits
+            case windowHours, maxRows, showTokens, showTitles, showBranch, showLimits, showCost
         }
 
         public init(from decoder: Decoder) throws {
@@ -26,6 +27,7 @@ public struct ClaudeCodeWidget: WidgetDefinition {
             showTitles = try container.decodeIfPresent(Bool.self, forKey: .showTitles) ?? true
             showBranch = try container.decodeIfPresent(Bool.self, forKey: .showBranch) ?? true
             showLimits = try container.decodeIfPresent(Bool.self, forKey: .showLimits) ?? true
+            showCost = try container.decodeIfPresent(Bool.self, forKey: .showCost) ?? true
         }
     }
 
@@ -52,6 +54,14 @@ public struct ClaudeCodeWidget: WidgetDefinition {
 
     @MainActor public static func makeConfigView(config: Binding<Config>, context: WidgetContext) -> AnyView {
         AnyView(ClaudeCodeConfigView(config: config))
+    }
+
+    /// "48m", "2h05m", "6d10h".
+    static func duration(_ seconds: TimeInterval) -> String {
+        let total = Int(seconds)
+        if total >= 86400 { return "\(total / 86400)d\((total % 86400) / 3600)h" }
+        if total >= 3600 { return "\(total / 3600)h\(String(format: "%02d", (total % 3600) / 60))m" }
+        return "\(max(1, total / 60))m"
     }
 }
 
@@ -93,7 +103,9 @@ private struct ClaudeCodeView: View {
             } else {
                 listLayout
             }
-            if config.showTokens, size.cols >= 2 || size.rows >= 2 {
+            if config.showCost, size.rows >= 2 {
+                costStats
+            } else if config.showTokens, size.cols >= 2 || size.rows >= 2 {
                 totalsLine
             }
         }
@@ -178,20 +190,26 @@ private struct ClaudeCodeView: View {
         }
     }
 
-    /// CodexBar-style plan limit bars: 5h session window + weekly (+ scoped).
+    /// CodexBar-style plan limit bars: 5h session window + weekly (+ scoped),
+    /// with reset countdown and a depletion forecast when burning fast.
     private func limitRows(_ usage: UsageLimits) -> some View {
         VStack(spacing: 3) {
-            limitRow("5h", usage.session)
-            limitRow("7d", usage.weeklyAll)
+            limitRow("5h", usage.session, forecast: monitor.forecasts.session)
+            limitRow("7d", usage.weeklyAll, forecast: monitor.forecasts.weeklyAll)
             if size.rows >= 2 {
-                limitRow(usage.weeklyScoped?.label.map(shortScope) ?? "7d·", usage.weeklyScoped)
+                limitRow(
+                    usage.weeklyScoped?.label.map(shortScope) ?? "7d·",
+                    usage.weeklyScoped,
+                    forecast: monitor.forecasts.weeklyScoped
+                )
             }
         }
     }
 
-    @ViewBuilder private func limitRow(_ label: String, _ window: UsageLimits.Window?) -> some View {
+    @ViewBuilder private func limitRow(_ label: String, _ window: UsageLimits.Window?, forecast: TimeInterval?) -> some View {
         if let window {
             let fraction = min(max(window.percent / 100, 0), 1)
+            let untilReset = window.resetsAt.map { $0.timeIntervalSinceNow }
             HStack(spacing: 6) {
                 Text(label)
                     .font(.system(size: 10, weight: .medium, design: .rounded))
@@ -203,12 +221,37 @@ private struct ClaudeCodeView: View {
                     .font(.system(size: 10, design: .monospaced))
                     .foregroundStyle(theme.textPrimary.color)
                     .frame(width: 30, alignment: .trailing)
-                if size.cols >= 2, let resets = window.resetsAt {
-                    Text("→\(Self.resetText(resets))")
+                if size.cols >= 2, let untilReset, untilReset > 0 {
+                    Text("→\(ClaudeCodeWidget.duration(untilReset))")
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundStyle(theme.textSecondary.color)
                 }
+                // Only warn when we'd hit the wall BEFORE the window resets.
+                if size.cols >= 2, let forecast, forecast < (untilReset ?? .infinity) {
+                    Text("⚠\(ClaudeCodeWidget.duration(forecast))")
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(theme.warn.color)
+                }
             }
+        }
+    }
+
+    /// today/30d dollars + tokens + daily-cost line, from local transcripts
+    /// at API list rates (estimate, like CodexBar).
+    @ViewBuilder private var costStats: some View {
+        let stats = monitor.stats
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 0) {
+                Text("today \(ModelPricing.dollars(stats.costToday)) · \(TokenTotals.text(stats.tokensToday)) tok")
+                Spacer(minLength: 8)
+                Text("30d \(ModelPricing.dollars(stats.cost30d)) · \(TokenTotals.text(stats.tokens30d))")
+            }
+            .font(.system(size: 11, design: .rounded))
+            .monospacedDigit()
+            .foregroundStyle(theme.textSecondary.color)
+            .lineLimit(1)
+            SparklineView(values: stats.dailyCosts, capacity: 30, color: theme.accentAlt.color)
+                .frame(height: 20)
         }
     }
 
@@ -223,12 +266,6 @@ private struct ClaudeCodeView: View {
         case .tokenExpired: "limits: token expired — run claude"
         case .requestFailed: "limits: unavailable"
         }
-    }
-
-    static func resetText(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = date.timeIntervalSinceNow < 24 * 3600 ? "HH:mm" : "M/d"
-        return formatter.string(from: date)
     }
 
     private var totalsLine: some View {
@@ -303,6 +340,7 @@ private struct ClaudeCodeConfigView: View {
             }
             Stepper("Rows: \(config.maxRows)", value: $config.maxRows, in: 1...12)
             Toggle("Plan limits (5h/weekly)", isOn: $config.showLimits)
+            Toggle("Cost estimate ($, 30 days)", isOn: $config.showCost)
             Toggle("Today's tokens", isOn: $config.showTokens)
             Toggle("Session titles", isOn: $config.showTitles)
             Toggle("Git branch", isOn: $config.showBranch)
