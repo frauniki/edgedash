@@ -6,7 +6,7 @@ import WidgetEngine
 public struct GPUWidget: WidgetDefinition {
     public struct Config: Codable, Sendable, DefaultInitializable {
         public var showHistory = true
-        public var showMemory = false
+        public var showMemory = true
         public init() {}
     }
 

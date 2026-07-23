@@ -54,26 +54,38 @@ private struct DiskView: View {
         if case .duplex(let inV, let outV)? = io.latest { (inV, outV) } else { nil }
     }
 
+    private var ringColor: Color {
+        theme.gaugeColor(fraction, warn: 0.8, critical: 0.92).color
+    }
+
+    private var percentText: String {
+        String(format: "%.0f%%", fraction * 100)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            WidgetTitle(text: "DISK", value: String(format: "%.0f%%", fraction * 100))
+        VStack(alignment: .leading, spacing: 8) {
+            WidgetTitle(text: "DISK", value: nil)
             if size.cols >= 2 || size.rows >= 2 {
-                HStack(spacing: 14) {
-                    RingGauge(fraction: fraction, color: theme.gaugeColor(fraction, warn: 0.8, critical: 0.92).color)
-                        .frame(maxWidth: 90)
-                    VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 18) {
+                    LabeledRing(fraction: fraction, color: ringColor, label: percentText)
+                    VStack(alignment: .leading, spacing: 4) {
                         detailRow("Free", details["free"])
                         detailRow("Total", details["total"])
                         if config.showIO, let ioRates {
-                            ioRow("R", ioRates.read, theme.accent.color)
-                            ioRow("W", ioRates.write, theme.accentAlt.color)
+                            ioRow("Read", ioRates.read, theme.accent.color)
+                            ioRow("Write", ioRates.write, theme.accentAlt.color)
+                        }
+                        Spacer(minLength: 4)
+                        if config.showIO {
+                            SparklineView(history: io.history, color: theme.accent.color)
+                                .frame(height: 36)
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity)
                 }
                 .frame(maxHeight: .infinity)
             } else {
-                RingGauge(fraction: fraction, color: theme.gaugeColor(fraction, warn: 0.8, critical: 0.92).color)
+                LabeledRing(fraction: fraction, color: ringColor, label: percentText)
             }
         }
         .padding(14)
@@ -87,7 +99,7 @@ private struct DiskView: View {
                 .monospacedDigit()
                 .foregroundStyle(theme.textPrimary.color)
         }
-        .font(.system(size: 13, design: .rounded))
+        .font(.system(size: 14, design: .rounded))
     }
 
     private func ioRow(_ label: String, _ rate: Double, _ color: Color) -> some View {
@@ -98,7 +110,7 @@ private struct DiskView: View {
                 .monospacedDigit()
                 .foregroundStyle(color)
         }
-        .font(.system(size: 13, design: .rounded))
+        .font(.system(size: 14, design: .rounded))
     }
 }
 

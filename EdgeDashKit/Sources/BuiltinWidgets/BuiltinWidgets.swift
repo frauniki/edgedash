@@ -11,6 +11,7 @@ public enum BuiltinWidgets {
         registry.register(DiskWidget.self)
         registry.register(TemperatureWidget.self)
         registry.register(FanWidget.self)
+        registry.register(PowerWidget.self)
     }
 
     /// Starter layout for a fresh install (landscape 8×2 grid).

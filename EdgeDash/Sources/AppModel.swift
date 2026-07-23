@@ -27,6 +27,8 @@ import WidgetEngine
         .memoryUsage, .memoryBreakdown, .memoryPressure,
         .gpuUsage, .gpuMemory, .networkThroughput,
         .diskCapacity, .diskIO, .temperatures, .fans,
+        .systemPower, .cpuBreakdown, .systemUptime,
+        .topProcessesCPU, .topProcessesMemory,
     ]
 
     private var dashboardVisible = false
@@ -48,6 +50,8 @@ import WidgetEngine
             await engine.register(DiskIOReader())
             await engine.register(SMCTemperatureReader())
             await engine.register(SMCFanReader())
+            await engine.register(SMCPowerReader())
+            await engine.register(ProcessReader())
             await engine.start(publishingTo: hub)
         }
         refreshActiveMetrics()

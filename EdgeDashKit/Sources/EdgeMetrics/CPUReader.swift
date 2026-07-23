@@ -6,6 +6,8 @@ public extension MetricID {
     static let cpuUsage = MetricID("cpu.usage")         // scalar 0–1
     static let cpuPerCore = MetricID("cpu.perCore")     // perCore 0–1
     static let cpuLoadAverage = MetricID("cpu.loadavg") // composite 1/5/15
+    static let cpuBreakdown = MetricID("cpu.breakdown") // composite user/system/idle 0–1
+    static let systemUptime = MetricID("sys.uptime")    // scalar seconds
 }
 
 /// CPU utilization from host_processor_info tick deltas.
@@ -29,7 +31,7 @@ public final class CPUReader: MetricReader, @unchecked Sendable {
 
     public init() {}
 
-    public var provides: [MetricID] { [.cpuUsage, .cpuPerCore, .cpuLoadAverage] }
+    public var provides: [MetricID] { [.cpuUsage, .cpuPerCore, .cpuLoadAverage, .cpuBreakdown, .systemUptime] }
     public var cadence: MetricCadence { .everyTick }
 
     public func read() throws -> [MetricSample] {
@@ -48,7 +50,33 @@ public final class CPUReader: MetricReader, @unchecked Sendable {
             MetricSample(id: .cpuUsage, value: .scalar(total)),
             MetricSample(id: .cpuPerCore, value: .perCore(perCore)),
             MetricSample(id: .cpuLoadAverage, value: .composite(["1": load[0], "5": load[1], "15": load[2]])),
+            MetricSample(id: .cpuBreakdown, value: .composite(Self.breakdown(previous: previous, current: current))),
+            MetricSample(id: .systemUptime, value: .scalar(Self.uptimeSeconds())),
         ]
+    }
+
+    /// Aggregate user/system/idle split across all cores.
+    public static func breakdown(previous: [CoreTicks], current: [CoreTicks]) -> [String: Double] {
+        var user: UInt64 = 0, system: UInt64 = 0, idle: UInt64 = 0
+        for (prev, curr) in zip(previous, current) {
+            user &+= (curr.user &- prev.user) &+ (curr.nice &- prev.nice)
+            system &+= curr.system &- prev.system
+            idle &+= curr.idle &- prev.idle
+        }
+        let total = Double(user &+ system &+ idle)
+        guard total > 0 else { return ["user": 0, "system": 0, "idle": 1] }
+        return [
+            "user": Double(user) / total,
+            "system": Double(system) / total,
+            "idle": Double(idle) / total,
+        ]
+    }
+
+    static func uptimeSeconds() -> Double {
+        var boottime = timeval()
+        var size = MemoryLayout<timeval>.stride
+        guard sysctlbyname("kern.boottime", &boottime, &size, nil, 0) == 0 else { return 0 }
+        return max(0, Date().timeIntervalSince1970 - Double(boottime.tv_sec))
     }
 
     /// Pure delta math, unit-tested without Mach.

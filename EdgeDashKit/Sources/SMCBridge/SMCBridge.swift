@@ -4,6 +4,7 @@ import Foundation
 public extension MetricID {
     static let temperatures = MetricID("smc.temps") // composite: sensor name → °C
     static let fans = MetricID("smc.fans")          // composite: "Fan N" → RPM
+    static let systemPower = MetricID("smc.power")  // scalar: total system watts
 }
 
 /// Quarantine module for private-API access. Everything here feature-detects
@@ -44,6 +45,32 @@ public struct SMCTemperatureReader: MetricReader {
         let sensors = HIDTemperatureSensors.readAll()
         guard !sensors.isEmpty else { return [] }
         return [MetricSample(id: .temperatures, value: .composite(sensors))]
+    }
+}
+
+/// Total system power draw from the SMC "PSTR" key (watts, Apple Silicon).
+/// Feature-detected like everything in this module.
+public final class SMCPowerReader: MetricReader, @unchecked Sendable {
+    private var smc: SMCConnection? // engine calls read() serially
+    private var openAttempted = false
+
+    public init() {}
+
+    public var provides: [MetricID] { [.systemPower] }
+    public var cadence: MetricCadence { .every(2) }
+
+    public func read() throws -> [MetricSample] {
+        if smc == nil, !openAttempted {
+            openAttempted = true
+            smc = SMCConnection()
+        }
+        guard let smc,
+              let (bytes, type) = smc.read(key: "PSTR"),
+              let watts = SMCConnection.decodeFloat(bytes: bytes, type: type),
+              watts > 0, watts < 1000 else {
+            return []
+        }
+        return [MetricSample(id: .systemPower, value: .scalar(watts))]
     }
 }
 

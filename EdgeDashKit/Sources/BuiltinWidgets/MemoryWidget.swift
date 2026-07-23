@@ -6,7 +6,10 @@ import WidgetEngine
 public struct MemoryWidget: WidgetDefinition {
     public struct Config: Codable, Sendable, DefaultInitializable {
         public var showBreakdown = true
-        public var showSwap = false
+        public var showSwap = true
+        public var showPressure = true
+        public var showProcesses = true
+        public var processCount = 3
         public init() {}
     }
 
@@ -18,7 +21,11 @@ public struct MemoryWidget: WidgetDefinition {
     ]
 
     public static func requiredMetrics(for config: Config) -> Set<MetricID> {
-        config.showBreakdown ? [.memoryUsage, .memoryBreakdown] : [.memoryUsage]
+        var ids: Set<MetricID> = [.memoryUsage]
+        if config.showBreakdown { ids.insert(.memoryBreakdown) }
+        if config.showPressure { ids.insert(.memoryPressure) }
+        if config.showProcesses { ids.insert(.topProcessesMemory) }
+        return ids
     }
 
     @MainActor public static func makeView(config: Config, context: WidgetContext) -> AnyView {
@@ -26,6 +33,8 @@ public struct MemoryWidget: WidgetDefinition {
             config: config,
             usage: context.hub.store(for: .memoryUsage),
             breakdown: context.hub.store(for: .memoryBreakdown),
+            pressure: context.hub.store(for: .memoryPressure),
+            processes: context.hub.store(for: .topProcessesMemory),
             size: context.size
         ))
     }
@@ -40,6 +49,8 @@ private struct MemoryView: View {
     let config: MemoryWidget.Config
     let usage: MetricStore
     let breakdown: MetricStore
+    let pressure: MetricStore
+    let processes: MetricStore
     let size: GridSize
 
     private var fraction: Double {
@@ -54,35 +65,83 @@ private struct MemoryView: View {
         theme.gaugeColor(fraction, warn: 0.8, critical: 0.92).color
     }
 
+    private var percentText: String {
+        String(format: "%.0f%%", fraction * 100)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            WidgetTitle(text: "MEMORY", value: String(format: "%.0f%%", fraction * 100))
+        VStack(alignment: .leading, spacing: 8) {
             if size.cols >= 2 || size.rows >= 2 {
-                HStack(spacing: 14) {
-                    RingGauge(fraction: fraction, color: accent)
-                        .frame(maxWidth: 90)
+                WidgetTitle(text: "MEMORY", value: nil)
+                HStack(spacing: 18) {
+                    LabeledRing(fraction: fraction, color: accent, label: percentText)
                     if config.showBreakdown {
-                        breakdownRows
+                        VStack(alignment: .leading, spacing: 4) {
+                            breakdownRows
+                            Spacer(minLength: 4)
+                            SparklineView(history: usage.history, maxValue: 1, color: accent)
+                                .frame(height: 36)
+                        }
+                        .frame(maxWidth: .infinity)
                     }
                 }
                 .frame(maxHeight: .infinity)
             } else {
-                RingGauge(fraction: fraction, color: accent)
+                WidgetTitle(text: "MEMORY", value: nil)
+                LabeledRing(fraction: fraction, color: accent, label: percentText)
             }
         }
         .padding(14)
     }
 
-    private var breakdownRows: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            row("Used", details["used"])
-            row("Wired", details["wired"])
-            row("Compressed", details["compressed"])
-            if config.showSwap {
-                row("Swap", details["swapUsed"])
+    @ViewBuilder private var breakdownRows: some View {
+        row("Used", details["used"])
+        row("App", details["app"])
+        row("Wired", details["wired"])
+        row("Compressed", details["compressed"])
+        if config.showSwap {
+            row("Swap", details["swapUsed"])
+        }
+        if config.showPressure, case .scalar(let level)? = pressure.latest {
+            HStack {
+                Text("Pressure").foregroundStyle(theme.textSecondary.color)
+                Spacer()
+                Text(Self.pressureLabel(level))
+                    .foregroundStyle(Self.pressureColor(level, theme: theme))
+            }
+            .font(.system(size: 14, design: .rounded))
+        }
+        if config.showProcesses, !topProcesses.isEmpty {
+            Divider().padding(.vertical, 2)
+            ForEach(topProcesses, id: \.name) { process in
+                HStack {
+                    Text(process.name)
+                        .foregroundStyle(theme.textSecondary.color)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer()
+                    Text(Self.gib(process.bytes))
+                        .monospacedDigit()
+                        .foregroundStyle(theme.textPrimary.color)
+                }
+                .font(.system(size: 12, design: .rounded))
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var topProcesses: [(name: String, bytes: Double)] {
+        guard case .composite(let values)? = processes.latest else { return [] }
+        return values.sorted { $0.value > $1.value }
+            .prefix(max(1, config.processCount))
+            .map { (name: $0.key, bytes: $0.value) }
+    }
+
+    static func pressureLabel(_ level: Double) -> String {
+        level >= 4 ? "critical" : level >= 2 ? "warning" : "normal"
+    }
+
+    static func pressureColor(_ level: Double, theme: Theme) -> Color {
+        level >= 4 ? theme.critical.color : level >= 2 ? theme.warn.color : theme.accent.color
     }
 
     private func row(_ label: String, _ bytes: Double?) -> some View {
@@ -94,7 +153,7 @@ private struct MemoryView: View {
                 .monospacedDigit()
                 .foregroundStyle(theme.textPrimary.color)
         }
-        .font(.system(size: 13, design: .rounded))
+        .font(.system(size: 14, design: .rounded))
     }
 
     private static func gib(_ bytes: Double) -> String {
@@ -109,6 +168,9 @@ private struct MemoryConfigView: View {
         Form {
             Toggle("Breakdown", isOn: $config.showBreakdown)
             Toggle("Swap", isOn: $config.showSwap)
+            Toggle("Memory pressure", isOn: $config.showPressure)
+            Toggle("Top processes", isOn: $config.showProcesses)
+            Stepper("Processes: \(config.processCount)", value: $config.processCount, in: 1...8)
         }
     }
 }

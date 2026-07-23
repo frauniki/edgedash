@@ -113,6 +113,38 @@ public struct RingGauge: View {
     }
 }
 
+/// Ring gauge with the value rendered in its center, font scaled to the
+/// ring's size. Sizes itself to fill available space (square).
+public struct LabeledRing: View {
+    @Environment(\.theme) private var theme
+    let fraction: Double
+    var color: Color
+    var label: String
+
+    public init(fraction: Double, color: Color, label: String) {
+        self.fraction = fraction
+        self.color = color
+        self.label = label
+    }
+
+    public var body: some View {
+        GeometryReader { proxy in
+            let side = min(proxy.size.width, proxy.size.height)
+            RingGauge(fraction: fraction, color: color)
+                .overlay(
+                    Text(label)
+                        .font(.system(size: side * 0.24, weight: .semibold, design: .rounded))
+                        .monospacedDigit()
+                        .minimumScaleFactor(0.5)
+                        .foregroundStyle(theme.textPrimary.color)
+                )
+                .frame(width: side, height: side)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .aspectRatio(1, contentMode: .fit)
+    }
+}
+
 /// Compact per-core utilization bars.
 public struct CoreBars: View {
     @Environment(\.theme) private var theme
