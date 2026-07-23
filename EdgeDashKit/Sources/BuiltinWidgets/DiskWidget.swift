@@ -6,8 +6,19 @@ import WidgetEngine
 public struct DiskWidget: WidgetDefinition {
     public struct Config: Codable, Sendable, DefaultInitializable {
         public var showIO = true
+        public var showCapacity = true
         public var volumePath = "/"
         public init() {}
+
+        // Lenient decoding: adding fields must not reset saved configs.
+        private enum CodingKeys: String, CodingKey { case showIO, showCapacity, volumePath }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            showIO = try container.decodeIfPresent(Bool.self, forKey: .showIO) ?? true
+            showCapacity = try container.decodeIfPresent(Bool.self, forKey: .showCapacity) ?? true
+            volumePath = try container.decodeIfPresent(String.self, forKey: .volumePath) ?? "/"
+        }
     }
 
     public static let typeID = WidgetTypeID("edgedash.disk")
@@ -18,8 +29,10 @@ public struct DiskWidget: WidgetDefinition {
     ]
 
     public static func requiredMetrics(for config: Config) -> Set<MetricID> {
-        let capacity = MetricID.diskCapacity(volume: config.volumePath)
-        return config.showIO ? [capacity, .diskIO] : [capacity]
+        var ids: Set<MetricID> = []
+        if config.showCapacity { ids.insert(.diskCapacity(volume: config.volumePath)) }
+        if config.showIO { ids.insert(.diskIO) }
+        return ids
     }
 
     @MainActor public static func makeView(config: Config, context: WidgetContext) -> AnyView {
@@ -77,10 +90,14 @@ private struct DiskView: View {
             )
             if size.cols >= 2 || size.rows >= 2 {
                 HStack(spacing: 18) {
-                    LabeledRing(fraction: fraction, color: ringColor, label: percentText)
+                    if config.showCapacity {
+                        LabeledRing(fraction: fraction, color: ringColor, label: percentText)
+                    }
                     VStack(alignment: .leading, spacing: 4) {
-                        detailRow("Free", details["free"])
-                        detailRow("Total", details["total"])
+                        if config.showCapacity {
+                            detailRow("Free", details["free"])
+                            detailRow("Total", details["total"])
+                        }
                         if config.showIO, let ioRates {
                             ioRow("Read", ioRates.read, theme.accent.color)
                             ioRow("Write", ioRates.write, theme.accentAlt.color)
@@ -88,24 +105,26 @@ private struct DiskView: View {
                         Spacer(minLength: 4)
                         if config.showIO {
                             SparklineView(history: io.history, color: theme.accent.color)
-                                .frame(height: 36)
+                                .frame(height: config.showCapacity ? 36 : 60)
                         }
                     }
                     .frame(maxWidth: .infinity)
                 }
                 .frame(maxHeight: .infinity)
             } else {
-                // 1×1: ring on top, live access rates + sparkline below.
+                // 1×1: ring (if wanted) on top, live access rates + sparkline.
                 VStack(alignment: .leading, spacing: 5) {
-                    LabeledRing(fraction: fraction, color: ringColor, label: percentText)
-                        .frame(maxHeight: .infinity)
+                    if config.showCapacity {
+                        LabeledRing(fraction: fraction, color: ringColor, label: percentText)
+                            .frame(maxHeight: .infinity)
+                    }
                     if config.showIO {
                         if let ioRates {
                             ioRow("Read", ioRates.read, theme.accent.color)
                             ioRow("Write", ioRates.write, theme.accentAlt.color)
                         }
                         SparklineView(history: io.history, color: theme.accent.color)
-                            .frame(height: 26)
+                            .frame(maxHeight: config.showCapacity ? 26 : .infinity)
                     }
                 }
             }
@@ -147,6 +166,7 @@ private struct DiskConfigView: View {
                     Text(volume.name).tag(volume.path)
                 }
             }
+            Toggle("Capacity ring", isOn: $config.showCapacity)
             Toggle("Read/write rates", isOn: $config.showIO)
         }
         .onAppear { volumes = DiskCapacityReader.mountedVolumes() }
