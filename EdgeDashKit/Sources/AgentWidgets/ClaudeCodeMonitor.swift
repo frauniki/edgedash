@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import os
 
 /// UI-facing state for the Claude Code widget: a periodically refreshed
 /// snapshot of sessions and today's token totals. Runs only while a page
@@ -10,6 +11,8 @@ import Observation
     /// Plan rate-limit windows (5h/weekly); nil until fetched or when the
     /// keychain/API is unavailable.
     public private(set) var usage: UsageLimits?
+    /// Why `usage` is nil, for the widget's hint row.
+    public private(set) var usageFailure: ClaudeUsageFetcher.Failure?
 
     private let scanner: ClaudeSessionScanner
     private let usageFetcher = ClaudeUsageFetcher()
@@ -23,7 +26,10 @@ import Observation
         self.interval = interval
     }
 
+    private static let log = Logger(subsystem: "jp.sinoa.edgedash", category: "usage")
+
     public func setActive(_ active: Bool) {
+        Self.log.info("monitor setActive \(active) (task running: \(self.pollTask != nil))")
         if active {
             guard pollTask == nil else { return }
             pollTask = Task { [scanner, interval] in
@@ -45,9 +51,18 @@ import Observation
     private func refreshUsageIfStale() async {
         guard Date().timeIntervalSince(lastUsageFetch) > usageInterval else { return }
         lastUsageFetch = Date()
-        if let fetched = await usageFetcher.fetch() {
+        switch await usageFetcher.fetch() {
+        case .limits(let fetched):
             usage = fetched
+            usageFailure = nil
+        case .failure(let failure):
+            // Keep the last good value on transient failures; it beats flapping.
+            usageFailure = failure
         }
-        // Keep the last good value on transient failures; it beats flapping.
+    }
+
+    /// Settings/widget retry: forget the backoff and fetch on the next tick.
+    public func retryUsage() {
+        lastUsageFetch = .distantPast
     }
 }

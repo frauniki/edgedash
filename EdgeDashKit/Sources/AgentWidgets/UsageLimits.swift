@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Plan rate-limit windows as reported by Anthropic's OAuth usage endpoint —
 /// the same numbers Claude Code's /usage shows (5-hour session window,
@@ -98,32 +99,71 @@ public struct UsageLimits: Sendable, Equatable {
 /// keychain consent prompt once ("Always Allow" remembers the choice; TCC-
 /// style, bound to the app's signature).
 public actor ClaudeUsageFetcher {
+    public enum Failure: Error, Sendable, Equatable {
+        case keychainDenied
+        case noCredentials
+        case tokenExpired
+        case requestFailed
+    }
+
+    public enum Outcome: Sendable, Equatable {
+        case limits(UsageLimits)
+        case failure(Failure)
+    }
+
+    private static let log = Logger(subsystem: "jp.sinoa.edgedash", category: "usage")
+
     public init() {}
 
-    public func fetch() async -> UsageLimits? {
-        guard let token = Self.accessToken() else { return nil }
+    public func fetch() async -> Outcome {
+        let token: String
+        switch Self.accessToken() {
+        case .success(let value): token = value
+        case .failure(let failure): return .failure(failure)
+        }
         var request = URLRequest(url: URL(string: "https://api.anthropic.com/api/oauth/usage")!)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
         request.timeoutInterval = 10
-        guard let (data, response) = try? await URLSession.shared.data(for: request),
-              (response as? HTTPURLResponse)?.statusCode == 200 else { return nil }
-        return UsageLimits.parse(data)
+        guard let (data, response) = try? await URLSession.shared.data(for: request) else {
+            Self.log.error("usage request failed (network)")
+            return .failure(.requestFailed)
+        }
+        let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+        guard status == 200, let limits = UsageLimits.parse(data) else {
+            Self.log.error("usage request failed: HTTP \(status)")
+            return .failure(status == 401 ? .tokenExpired : .requestFailed)
+        }
+        Self.log.info("usage fetched: session \(limits.session?.percent ?? -1, format: .fixed(precision: 0))%")
+        return .limits(limits)
     }
 
     // MARK: - Credentials
 
-    private static func accessToken(now: Date = Date()) -> String? {
+    private static func accessToken(now: Date = Date()) -> Result<String, Failure> {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: "Claude Code-credentials",
+            kSecAttrSynchronizable as String: kSecAttrSynchronizableAny,
             kSecReturnData as String: true,
             kSecMatchLimit as String: kSecMatchLimitOne,
         ]
         var result: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data else { return nil }
-        return accessToken(from: data, now: now)
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        guard status == errSecSuccess, let data = result as? Data else {
+            log.error("keychain read failed: OSStatus \(status)")
+            switch status {
+            case errSecItemNotFound: return .failure(.noCredentials)
+            case errSecAuthFailed, errSecUserCanceled, errSecInteractionNotAllowed:
+                return .failure(.keychainDenied)
+            default: return .failure(.keychainDenied)
+            }
+        }
+        guard let token = accessToken(from: data, now: now) else {
+            log.info("credentials present but token expired")
+            return .failure(.tokenExpired)
+        }
+        return .success(token)
     }
 
     /// Pure part, unit tested. Expired tokens return nil — Claude Code

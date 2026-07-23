@@ -73,8 +73,15 @@ private struct ClaudeCodeView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
             WidgetTitle(text: "CLAUDE CODE", value: "\(workingCount)")
-            if config.showLimits, let usage = monitor.usage {
-                limitRows(usage)
+            if config.showLimits {
+                if let usage = monitor.usage {
+                    limitRows(usage)
+                } else if let failure = monitor.usageFailure {
+                    Text(Self.failureText(failure))
+                        .font(.system(size: 10, design: .rounded))
+                        .foregroundStyle(theme.warn.color)
+                        .lineLimit(1)
+                }
             }
             if visibleSessions.isEmpty {
                 Text("No recent sessions")
@@ -207,6 +214,15 @@ private struct ClaudeCodeView: View {
 
     private func shortScope(_ label: String) -> String {
         "7d·" + (label.hasPrefix("claude-") ? String(label.dropFirst("claude-".count)) : label)
+    }
+
+    static func failureText(_ failure: ClaudeUsageFetcher.Failure) -> String {
+        switch failure {
+        case .keychainDenied: "limits: keychain access denied"
+        case .noCredentials: "limits: no Claude Code login"
+        case .tokenExpired: "limits: token expired — run claude"
+        case .requestFailed: "limits: unavailable"
+        }
     }
 
     static func resetText(_ date: Date) -> String {
