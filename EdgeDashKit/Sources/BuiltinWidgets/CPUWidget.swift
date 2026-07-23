@@ -134,10 +134,8 @@ private struct CPUView: View {
             WidgetTitle(text: "CPU", value: headerValue)
             if size.rows >= 2 {
                 fullLayout
-            } else if size.cols >= 2 {
-                compactLayout
             } else {
-                LabeledRing(fraction: fraction, color: accent, label: String(format: "%.0f%%", fraction * 100))
+                compactLayout
             }
         }
         .padding(14)
@@ -169,7 +167,7 @@ private struct CPUView: View {
         }
     }
 
-    /// 2×1: histogram + single combined core-ring row + legend.
+    /// 1×1 / 2×1: histogram + single combined core-ring row + legend.
     @ViewBuilder private var compactLayout: some View {
         if config.showHistory {
             StackedBarHistory(
@@ -181,10 +179,21 @@ private struct CPUView: View {
             .frame(maxHeight: .infinity)
         }
         if config.showPerCore, !cores.isEmpty {
-            let clusters = clusters
-            // One row, E then P, cluster encoded by color — fits a 2×1 cell.
-            let diameter: CGFloat = cores.count > 20 ? 13 : 18
-            HStack(spacing: 5) {
+            compactCoreRow
+        }
+        splitLegend
+    }
+
+    /// One row, E then P, cluster encoded by color. Ring diameter shrinks to
+    /// whatever the cell width fits (1×1 is half a 2×1).
+    private var compactCoreRow: some View {
+        let clusters = clusters
+        let spacing: CGFloat = 5
+        let maxDiameter: CGFloat = 18
+        return GeometryReader { proxy in
+            let count = CGFloat(max(cores.count, 1))
+            let diameter = min(maxDiameter, (proxy.size.width - spacing * (count - 1)) / count)
+            HStack(spacing: spacing) {
                 ForEach(Array(clusters.e.enumerated()), id: \.offset) { _, value in
                     MiniRing(fraction: value, color: theme.accentAlt.color)
                         .frame(width: diameter, height: diameter)
@@ -195,8 +204,9 @@ private struct CPUView: View {
                 }
                 Spacer(minLength: 0)
             }
+            .frame(height: proxy.size.height)
         }
-        splitLegend
+        .frame(height: maxDiameter)
     }
 
     private var splitLegend: some View {
