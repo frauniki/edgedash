@@ -27,7 +27,9 @@ public protocol WidgetDefinition {
     static func requiredMetrics(for config: Config) -> Set<MetricID>
 
     @MainActor static func makeView(config: Config, context: WidgetContext) -> AnyView
-    @MainActor static func makeConfigView(config: Binding<Config>) -> AnyView
+    /// Context gives config UIs access to live data (e.g. discovered sensor
+    /// names for a picker), not just static options.
+    @MainActor static func makeConfigView(config: Binding<Config>, context: WidgetContext) -> AnyView
 }
 
 /// Per-instance environment handed to widget views.
@@ -52,7 +54,7 @@ public struct AnyWidgetDefinition: Identifiable, Sendable {
 
     private let _requiredMetrics: @Sendable (Data?) -> Set<MetricID>
     private let _makeView: @MainActor @Sendable (Data?, WidgetContext) -> AnyView
-    private let _makeConfigView: @MainActor @Sendable (Binding<Data?>) -> AnyView
+    private let _makeConfigView: @MainActor @Sendable (Binding<Data?>, WidgetContext) -> AnyView
     private let _defaultConfigData: @Sendable () -> Data?
 
     public var id: WidgetTypeID { typeID }
@@ -64,20 +66,20 @@ public struct AnyWidgetDefinition: Identifiable, Sendable {
         supportedSizes = W.supportedSizes
         _requiredMetrics = { W.requiredMetrics(for: Self.decodeConfig(W.self, from: $0)) }
         _makeView = { W.makeView(config: Self.decodeConfig(W.self, from: $0), context: $1) }
-        _makeConfigView = { dataBinding in
+        _makeConfigView = { dataBinding, context in
             // Bridge the opaque blob to the widget's typed config: decode on
             // read, re-encode on every write so edits persist immediately.
             let typed = Binding<W.Config>(
                 get: { Self.decodeConfig(W.self, from: dataBinding.wrappedValue) },
                 set: { dataBinding.wrappedValue = try? JSONEncoder().encode($0) }
             )
-            return W.makeConfigView(config: typed)
+            return W.makeConfigView(config: typed, context: context)
         }
         _defaultConfigData = { try? JSONEncoder().encode(W.Config()) }
     }
 
-    @MainActor public func makeConfigView(configData: Binding<Data?>) -> AnyView {
-        _makeConfigView(configData)
+    @MainActor public func makeConfigView(configData: Binding<Data?>, context: WidgetContext) -> AnyView {
+        _makeConfigView(configData, context)
     }
 
     public func requiredMetrics(configData: Data?) -> Set<MetricID> {

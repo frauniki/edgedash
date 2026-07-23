@@ -28,8 +28,8 @@ public struct TemperatureWidget: WidgetDefinition {
         AnyView(TemperatureView(config: config, temps: context.hub.store(for: .temperatures)))
     }
 
-    @MainActor public static func makeConfigView(config: Binding<Config>) -> AnyView {
-        AnyView(TemperatureConfigView(config: config))
+    @MainActor public static func makeConfigView(config: Binding<Config>, context: WidgetContext) -> AnyView {
+        AnyView(TemperatureConfigView(config: config, temps: context.hub.store(for: .temperatures)))
     }
 }
 
@@ -106,11 +106,41 @@ private struct TemperatureView: View {
 
 private struct TemperatureConfigView: View {
     @Binding var config: TemperatureWidget.Config
+    let temps: MetricStore
+
+    private var discoveredSensors: [String] {
+        guard case .composite(let sensors)? = temps.latest else { return [] }
+        return sensors.keys.sorted()
+    }
 
     var body: some View {
         Form {
             Stepper("Rows: \(config.maxRows)", value: $config.maxRows, in: 1...12)
             Toggle("Fahrenheit", isOn: $config.fahrenheit)
+            Section("Sensors") {
+                Toggle("All sensors (hottest first)", isOn: Binding(
+                    get: { config.sensorFilters.isEmpty },
+                    set: { all in if all { config.sensorFilters = [] } }
+                ))
+                if !discoveredSensors.isEmpty {
+                    ForEach(discoveredSensors, id: \.self) { name in
+                        Toggle(name, isOn: Binding(
+                            get: { config.sensorFilters.contains(name) },
+                            set: { on in
+                                if on {
+                                    config.sensorFilters.append(name)
+                                } else {
+                                    config.sensorFilters.removeAll { $0 == name }
+                                }
+                            }
+                        ))
+                        .font(.caption)
+                    }
+                } else {
+                    Text("No sensors discovered yet")
+                        .foregroundStyle(.secondary)
+                }
+            }
         }
     }
 }

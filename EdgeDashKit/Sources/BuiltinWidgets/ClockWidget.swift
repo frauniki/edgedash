@@ -23,7 +23,7 @@ public struct ClockWidget: WidgetDefinition {
         AnyView(ClockView(config: config))
     }
 
-    @MainActor public static func makeConfigView(config: Binding<Config>) -> AnyView {
+    @MainActor public static func makeConfigView(config: Binding<Config>, context: WidgetContext) -> AnyView {
         AnyView(ClockConfigView(config: config))
     }
 }

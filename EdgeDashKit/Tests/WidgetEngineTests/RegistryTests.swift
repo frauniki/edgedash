@@ -24,7 +24,7 @@ private struct FakeWidget: WidgetDefinition {
         AnyView(Text(config.flavor))
     }
 
-    @MainActor static func makeConfigView(config: Binding<Config>) -> AnyView {
+    @MainActor static func makeConfigView(config: Binding<Config>, context: WidgetContext) -> AnyView {
         AnyView(EmptyView())
     }
 }

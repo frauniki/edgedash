@@ -9,6 +9,7 @@ public struct CPUWidget: WidgetDefinition {
         public var showPerCore = true          // per-core ring rows (E/P clusters)
         public var showHistory = true          // stacked user/system histogram
         public var showLoadAverage = true
+        public var showUptime = true
         public var showProcesses = true
         public var showTemperature = true
         public var processCount = 4
@@ -49,7 +50,7 @@ public struct CPUWidget: WidgetDefinition {
         ))
     }
 
-    @MainActor public static func makeConfigView(config: Binding<Config>) -> AnyView {
+    @MainActor public static func makeConfigView(config: Binding<Config>, context: WidgetContext) -> AnyView {
         AnyView(CPUConfigView(config: config))
     }
 }
@@ -239,7 +240,7 @@ private struct CPUView: View {
            let l1 = values["1"], let l5 = values["5"], let l15 = values["15"] {
             parts.append(String(format: "load %.2f %.2f %.2f", l1, l5, l15))
         }
-        if case .scalar(let seconds)? = uptime.latest, seconds > 0 {
+        if config.showUptime, case .scalar(let seconds)? = uptime.latest, seconds > 0 {
             parts.append("up \(Self.uptimeText(seconds))")
         }
         return parts.isEmpty ? nil : parts.joined(separator: "   ")
@@ -265,9 +266,18 @@ private struct CPUConfigView: View {
             Toggle("User/system histogram", isOn: $config.showHistory)
             Toggle("Per-core rings", isOn: $config.showPerCore)
             Toggle("Load average", isOn: $config.showLoadAverage)
+            Toggle("Uptime", isOn: $config.showUptime)
             Toggle("Temperature", isOn: $config.showTemperature)
             Toggle("Top processes", isOn: $config.showProcesses)
             Stepper("Processes: \(config.processCount)", value: $config.processCount, in: 1...8)
+            Section("Color thresholds") {
+                LabeledContent(String(format: "Warn at %.0f%%", config.warnThreshold * 100)) {
+                    Slider(value: $config.warnThreshold, in: 0.3...0.95)
+                }
+                LabeledContent(String(format: "Critical at %.0f%%", config.criticalThreshold * 100)) {
+                    Slider(value: $config.criticalThreshold, in: 0.5...1.0)
+                }
+            }
         }
     }
 }

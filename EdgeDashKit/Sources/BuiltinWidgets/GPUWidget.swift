@@ -30,7 +30,7 @@ public struct GPUWidget: WidgetDefinition {
         ))
     }
 
-    @MainActor public static func makeConfigView(config: Binding<Config>) -> AnyView {
+    @MainActor public static func makeConfigView(config: Binding<Config>, context: WidgetContext) -> AnyView {
         AnyView(GPUConfigView(config: config))
     }
 }

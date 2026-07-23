@@ -31,7 +31,7 @@ public struct NetworkWidget: WidgetDefinition {
         ))
     }
 
-    @MainActor public static func makeConfigView(config: Binding<Config>) -> AnyView {
+    @MainActor public static func makeConfigView(config: Binding<Config>, context: WidgetContext) -> AnyView {
         AnyView(NetworkConfigView(config: config))
     }
 }

@@ -25,7 +25,7 @@ public struct FanWidget: WidgetDefinition {
         AnyView(FanView(config: config, fans: context.hub.store(for: .fans)))
     }
 
-    @MainActor public static func makeConfigView(config: Binding<Config>) -> AnyView {
+    @MainActor public static func makeConfigView(config: Binding<Config>, context: WidgetContext) -> AnyView {
         AnyView(FanConfigView(config: config))
     }
 }

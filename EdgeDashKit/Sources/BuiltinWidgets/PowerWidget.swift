@@ -24,7 +24,7 @@ public struct PowerWidget: WidgetDefinition {
         AnyView(PowerView(config: config, power: context.hub.store(for: .systemPower)))
     }
 
-    @MainActor public static func makeConfigView(config: Binding<Config>) -> AnyView {
+    @MainActor public static func makeConfigView(config: Binding<Config>, context: WidgetContext) -> AnyView {
         AnyView(PowerConfigView(config: config))
     }
 }

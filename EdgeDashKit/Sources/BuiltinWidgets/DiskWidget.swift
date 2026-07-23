@@ -6,6 +6,7 @@ import WidgetEngine
 public struct DiskWidget: WidgetDefinition {
     public struct Config: Codable, Sendable, DefaultInitializable {
         public var showIO = true
+        public var volumePath = "/"
         public init() {}
     }
 
@@ -17,19 +18,20 @@ public struct DiskWidget: WidgetDefinition {
     ]
 
     public static func requiredMetrics(for config: Config) -> Set<MetricID> {
-        config.showIO ? [.diskCapacity, .diskIO] : [.diskCapacity]
+        let capacity = MetricID.diskCapacity(volume: config.volumePath)
+        return config.showIO ? [capacity, .diskIO] : [capacity]
     }
 
     @MainActor public static func makeView(config: Config, context: WidgetContext) -> AnyView {
         AnyView(DiskView(
             config: config,
-            capacity: context.hub.store(for: .diskCapacity),
+            capacity: context.hub.store(for: .diskCapacity(volume: config.volumePath)),
             io: context.hub.store(for: .diskIO),
             size: context.size
         ))
     }
 
-    @MainActor public static func makeConfigView(config: Binding<Config>) -> AnyView {
+    @MainActor public static func makeConfigView(config: Binding<Config>, context: WidgetContext) -> AnyView {
         AnyView(DiskConfigView(config: config))
     }
 }
@@ -62,9 +64,17 @@ private struct DiskView: View {
         String(format: "%.0f%%", fraction * 100)
     }
 
+    private var volumeName: String {
+        DiskCapacityReader.mountedVolumes()
+            .first { $0.path == config.volumePath }?.name ?? config.volumePath
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            WidgetTitle(text: "DISK", value: nil)
+            WidgetTitle(
+                text: config.volumePath == "/" ? "DISK" : "DISK · \(volumeName)",
+                value: nil
+            )
             if size.cols >= 2 || size.rows >= 2 {
                 HStack(spacing: 18) {
                     LabeledRing(fraction: fraction, color: ringColor, label: percentText)
@@ -116,10 +126,17 @@ private struct DiskView: View {
 
 private struct DiskConfigView: View {
     @Binding var config: DiskWidget.Config
+    @State private var volumes: [(path: String, name: String)] = []
 
     var body: some View {
         Form {
+            Picker("Volume", selection: $config.volumePath) {
+                ForEach(volumes, id: \.path) { volume in
+                    Text(volume.name).tag(volume.path)
+                }
+            }
             Toggle("Read/write rates", isOn: $config.showIO)
         }
+        .onAppear { volumes = DiskCapacityReader.mountedVolumes() }
     }
 }

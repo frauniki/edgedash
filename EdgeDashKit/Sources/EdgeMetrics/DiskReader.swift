@@ -4,34 +4,56 @@ import Foundation
 import IOKit
 
 public extension MetricID {
-    static let diskCapacity = MetricID("disk.capacity") // composite bytes: used/free/total
+    static let diskCapacity = MetricID("disk.capacity") // composite bytes: used/free/total (root volume)
     static let diskIO = MetricID("disk.io")             // duplex bytes/s: read(in)/write(out)
+
+    /// Per-volume capacity; the root volume keeps the legacy plain id so
+    /// existing configs stay valid.
+    static func diskCapacity(volume path: String) -> MetricID {
+        path == "/" ? .diskCapacity : MetricID("disk.capacity.\(path)")
+    }
 }
 
-/// Volume capacity via documented URL resource values. Slow-changing → 30 s.
+/// Capacity for every mounted user-visible volume, via documented URL
+/// resource values. Slow-changing → 30 s.
 public struct DiskCapacityReader: MetricReader {
-    private let volumeURL: URL
+    private let volumePaths: [String]
 
-    public init(volumeURL: URL = URL(fileURLWithPath: "/")) {
-        self.volumeURL = volumeURL
+    public init() {
+        volumePaths = Self.mountedVolumes().map(\.path)
     }
 
-    public var provides: [MetricID] { [.diskCapacity] }
+    public var provides: [MetricID] { volumePaths.map { .diskCapacity(volume: $0) } }
     public var cadence: MetricCadence { .every(30) }
 
     public func read() throws -> [MetricSample] {
-        let values = try volumeURL.resourceValues(forKeys: [
-            .volumeTotalCapacityKey, .volumeAvailableCapacityForImportantUsageKey,
-        ])
-        guard let total = values.volumeTotalCapacity,
-              let free = values.volumeAvailableCapacityForImportantUsage else {
-            return []
+        volumePaths.compactMap { path in
+            let url = URL(fileURLWithPath: path)
+            guard let values = try? url.resourceValues(forKeys: [
+                .volumeTotalCapacityKey, .volumeAvailableCapacityForImportantUsageKey,
+            ]),
+                let total = values.volumeTotalCapacity,
+                let free = values.volumeAvailableCapacityForImportantUsage else {
+                return nil
+            }
+            return MetricSample(id: .diskCapacity(volume: path), value: .composite([
+                "total": Double(total),
+                "free": Double(free),
+                "used": Double(max(0, Int64(total) - free)),
+            ]))
         }
-        return [MetricSample(id: .diskCapacity, value: .composite([
-            "total": Double(total),
-            "free": Double(free),
-            "used": Double(max(0, Int64(total) - free)),
-        ]))]
+    }
+
+    /// User-visible mounted volumes, for the widget's volume picker.
+    public static func mountedVolumes() -> [(path: String, name: String)] {
+        let urls = FileManager.default.mountedVolumeURLs(
+            includingResourceValuesForKeys: [.volumeNameKey],
+            options: [.skipHiddenVolumes]
+        ) ?? [URL(fileURLWithPath: "/")]
+        return urls.map { url in
+            let name = (try? url.resourceValues(forKeys: [.volumeNameKey]))?.volumeName
+            return (path: url.path, name: name ?? url.lastPathComponent)
+        }
     }
 }
 

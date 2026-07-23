@@ -250,14 +250,17 @@ public struct DashboardSettingsView: View {
                         updatePlacement(placement.id, in: page) { $0.frame = newFrame }
                     }
                     Divider()
-                    definition.makeConfigView(configData: Binding(
-                        get: {
-                            selectedPlacement(in: configStore.config.pages.first { $0.id == page.id } ?? page)?.configData
-                        },
-                        set: { newData in
-                            updatePlacement(placement.id, in: page) { $0.configData = newData }
-                        }
-                    ))
+                    definition.makeConfigView(
+                        configData: Binding(
+                            get: {
+                                selectedPlacement(in: configStore.config.pages.first { $0.id == page.id } ?? page)?.configData
+                            },
+                            set: { newData in
+                                updatePlacement(placement.id, in: page) { $0.configData = newData }
+                            }
+                        ),
+                        context: WidgetContext(hub: hub, size: placement.frame.size)
+                    )
                 }
                 .padding(12)
             }
