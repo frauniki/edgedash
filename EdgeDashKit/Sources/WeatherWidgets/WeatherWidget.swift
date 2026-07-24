@@ -23,8 +23,8 @@ public struct WeatherWidget: WidgetDefinition {
 
         public init() {}
 
-        // Lenient decoding: adding fields must not reset saved configs, and
-        // an unknown mode string degrades to .auto instead of throwing.
+        /// Lenient decoding: adding fields must not reset saved configs, and
+        /// an unknown mode string degrades to .auto instead of throwing.
         private enum CodingKeys: String, CodingKey { case mode, place, fahrenheit, compactWeekly }
 
         public init(from decoder: Decoder) throws {
@@ -38,14 +38,19 @@ public struct WeatherWidget: WidgetDefinition {
     }
 
     public static let typeID = WidgetTypeID("edgedash.weather")
-    public static var displayName: String { loc("Weather") }
+    public static var displayName: String {
+        loc("Weather")
+    }
+
     public static let category = WidgetCategory.utility
     public static let supportedSizes = [
         GridSize(cols: 1, rows: 1), GridSize(cols: 2, rows: 1),
         GridSize(cols: 2, rows: 2), GridSize(cols: 4, rows: 2),
     ]
 
-    public static func requiredMetrics(for config: Config) -> Set<MetricID> { [] }
+    public static func requiredMetrics(for config: Config) -> Set<MetricID> {
+        []
+    }
 
     @MainActor public static func makeView(config: Config, context: WidgetContext) -> AnyView {
         AnyView(WeatherView(
@@ -559,7 +564,8 @@ private struct WeatherConfigView: View {
                             }
                             Spacer()
                             if config.place?.latitude == place.latitude,
-                               config.place?.longitude == place.longitude {
+                               config.place?.longitude == place.longitude
+                            {
                                 Image(systemName: "checkmark").foregroundStyle(.tint)
                             }
                         }

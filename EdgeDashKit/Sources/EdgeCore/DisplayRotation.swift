@@ -12,5 +12,7 @@ public enum DisplayRotation: Int, Sendable, Codable, CaseIterable {
         self = DisplayRotation(rawValue: normalized) ?? .none
     }
 
-    public var isPortrait: Bool { self == .quarter || self == .threeQuarter }
+    public var isPortrait: Bool {
+        self == .quarter || self == .threeQuarter
+    }
 }

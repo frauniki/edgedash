@@ -3,7 +3,7 @@ import Foundation
 import IOKit
 
 public extension MetricID {
-    static let gpuUsage = MetricID("gpu.usage")   // scalar 0–1
+    static let gpuUsage = MetricID("gpu.usage") // scalar 0–1
     static let gpuMemory = MetricID("gpu.memory") // scalar bytes in use
 }
 
@@ -12,8 +12,13 @@ public extension MetricID {
 public struct GPUReader: MetricReader {
     public init() {}
 
-    public var provides: [MetricID] { [.gpuUsage, .gpuMemory] }
-    public var cadence: MetricCadence { .everyTick }
+    public var provides: [MetricID] {
+        [.gpuUsage, .gpuMemory]
+    }
+
+    public var cadence: MetricCadence {
+        .everyTick
+    }
 
     public func read() throws -> [MetricSample] {
         guard let stats = Self.performanceStatistics() else { return [] }

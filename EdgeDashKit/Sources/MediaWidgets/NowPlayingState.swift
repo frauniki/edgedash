@@ -70,7 +70,7 @@ public enum MusicCommand: Sendable, Equatable {
     case nextTrack
     case previousTrack
     case seek(to: Double)
-    case setVolume(Double)   // 0…1
+    case setVolume(Double) // 0…1
     case setShuffle(Bool)
     case setRepeat(RepeatMode)
 }

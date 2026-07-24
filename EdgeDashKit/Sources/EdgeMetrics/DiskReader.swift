@@ -5,7 +5,7 @@ import IOKit
 
 public extension MetricID {
     static let diskCapacity = MetricID("disk.capacity") // composite bytes: used/free/total (root volume)
-    static let diskIO = MetricID("disk.io")             // duplex bytes/s: read(in)/write(out)
+    static let diskIO = MetricID("disk.io") // duplex bytes/s: read(in)/write(out)
 
     /// Per-volume capacity; the root volume keeps the legacy plain id so
     /// existing configs stay valid.
@@ -23,8 +23,13 @@ public struct DiskCapacityReader: MetricReader {
         volumePaths = Self.mountedVolumes().map(\.path)
     }
 
-    public var provides: [MetricID] { volumePaths.map { .diskCapacity(volume: $0) } }
-    public var cadence: MetricCadence { .every(30) }
+    public var provides: [MetricID] {
+        volumePaths.map { .diskCapacity(volume: $0) }
+    }
+
+    public var cadence: MetricCadence {
+        .every(30)
+    }
 
     public func read() throws -> [MetricSample] {
         volumePaths.compactMap { path in
@@ -33,7 +38,8 @@ public struct DiskCapacityReader: MetricReader {
                 .volumeTotalCapacityKey, .volumeAvailableCapacityForImportantUsageKey,
             ]),
                 let total = values.volumeTotalCapacity,
-                let free = values.volumeAvailableCapacityForImportantUsage else {
+                let free = values.volumeAvailableCapacityForImportantUsage
+            else {
                 return nil
             }
             return MetricSample(id: .diskCapacity(volume: path), value: .composite([
@@ -63,8 +69,13 @@ public final class DiskIOReader: MetricReader, @unchecked Sendable {
 
     public init() {}
 
-    public var provides: [MetricID] { [.diskIO] }
-    public var cadence: MetricCadence { .everyTick }
+    public var provides: [MetricID] {
+        [.diskIO]
+    }
+
+    public var cadence: MetricCadence {
+        .everyTick
+    }
 
     public func read() throws -> [MetricSample] {
         let (read, written) = Self.totalBytes()

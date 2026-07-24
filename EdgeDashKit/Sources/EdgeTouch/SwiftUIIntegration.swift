@@ -85,7 +85,9 @@ public struct TouchScrollView<Content: View>: View {
         self.content = content()
     }
 
-    private var maxOffset: CGFloat { max(0, contentHeight - viewportHeight) }
+    private var maxOffset: CGFloat {
+        max(0, contentHeight - viewportHeight)
+    }
 
     public var body: some View {
         GeometryReader { viewport in

@@ -76,7 +76,9 @@ public struct AnyWidgetDefinition: Identifiable, Sendable {
     private let _makeConfigView: @MainActor @Sendable (Binding<Data?>, WidgetContext) -> AnyView
     private let _defaultConfigData: @Sendable () -> Data?
 
-    public var id: WidgetTypeID { typeID }
+    public var id: WidgetTypeID {
+        typeID
+    }
 
     public init<W: WidgetDefinition>(_ widget: W.Type) {
         typeID = W.typeID

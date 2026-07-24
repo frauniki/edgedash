@@ -6,8 +6,8 @@ import WidgetEngine
 
 public struct CPUWidget: WidgetDefinition {
     public struct Config: Codable, Sendable, DefaultInitializable {
-        public var showPerCore = true          // per-core ring rows (E/P clusters)
-        public var showHistory = true          // stacked user/system histogram
+        public var showPerCore = true // per-core ring rows (E/P clusters)
+        public var showHistory = true // stacked user/system histogram
         public var showLoadAverage = true
         public var showUptime = true
         public var showProcesses = true
@@ -81,7 +81,8 @@ private struct CPUView: View {
     /// (efficiency, performance) core slices; E cores come first in the array.
     private var clusters: (e: [Double], p: [Double]) {
         guard case .composite(let topo)? = topology.latest,
-              let eCount = topo["e"].map(Int.init), eCount > 0, cores.count > eCount else {
+              let eCount = topo["e"].map(Int.init), eCount > 0, cores.count > eCount
+        else {
             return (e: [], p: cores)
         }
         return (e: Array(cores.prefix(eCount)), p: Array(cores.dropFirst(eCount)))
@@ -263,7 +264,8 @@ private struct CPUView: View {
     private var bottomLine: String? {
         var parts: [String] = []
         if config.showLoadAverage, case .composite(let values)? = load.latest,
-           let l1 = values["1"], let l5 = values["5"], let l15 = values["15"] {
+           let l1 = values["1"], let l5 = values["5"], let l15 = values["15"]
+        {
             parts.append(String(format: "load %.2f %.2f %.2f", l1, l5, l15))
         }
         if config.showUptime, case .scalar(let seconds)? = uptime.latest, seconds > 0 {
@@ -307,4 +309,3 @@ private struct CPUConfigView: View {
         }
     }
 }
-

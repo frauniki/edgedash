@@ -36,7 +36,7 @@ public struct DisplaySettingsView: View {
             Section(loc("Dashboard display")) {
                 LabeledContent(loc("Status"), value: statusText)
                 Picker(loc("Display"), selection: selectionBinding) {
-                    Text("Auto-detect supported device", bundle: Bundle.module).tag(Optional<String>.none)
+                    Text("Auto-detect supported device", bundle: Bundle.module).tag(String?.none)
                     ForEach(choices) { choice in
                         Text(choice.name + (choice.isProfileMatch ? loc("  ✓ supported device") : ""))
                             .tag(Optional(choice.id))

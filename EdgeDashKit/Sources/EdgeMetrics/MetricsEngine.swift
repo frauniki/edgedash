@@ -37,7 +37,9 @@ public actor MetricsEngine {
         self.paused = paused
     }
 
-    public var isPaused: Bool { paused }
+    public var isPaused: Bool {
+        paused
+    }
 
     public func start(publishingTo hub: MetricHub) {
         guard loop == nil else { return }

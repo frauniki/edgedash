@@ -14,14 +14,19 @@ public struct NowPlayingWidget: WidgetDefinition {
     }
 
     public static let typeID = WidgetTypeID("edgedash.nowplaying")
-    public static var displayName: String { loc("Now Playing") }
+    public static var displayName: String {
+        loc("Now Playing")
+    }
+
     public static let category = WidgetCategory.media
     public static let supportedSizes = [
         GridSize(cols: 1, rows: 1), GridSize(cols: 2, rows: 1),
         GridSize(cols: 2, rows: 2), GridSize(cols: 4, rows: 2),
     ]
 
-    public static func requiredMetrics(for config: Config) -> Set<MetricID> { [] }
+    public static func requiredMetrics(for config: Config) -> Set<MetricID> {
+        []
+    }
 
     @MainActor public static func makeView(config: Config, context: WidgetContext) -> AnyView {
         guard let player = context.services.resolve(MusicPlayerController.self) else {
@@ -43,9 +48,17 @@ private struct NowPlayingView: View {
     let player: MusicPlayerController
     let size: GridSize
 
-    private var now: NowPlayingState? { player.now }
-    private var isPlaying: Bool { now?.playerState == .playing }
-    private var dimmed: Bool { now?.playerState != .playing }
+    private var now: NowPlayingState? {
+        player.now
+    }
+
+    private var isPlaying: Bool {
+        now?.playerState == .playing
+    }
+
+    private var dimmed: Bool {
+        now?.playerState != .playing
+    }
 
     var body: some View {
         Group {
@@ -362,7 +375,9 @@ struct TouchSlider: View {
     @State private var globalFrame: CGRect = .zero
     @State private var lastDragSent = ContinuousClock.now - .seconds(1)
 
-    private var shown: Double { dragFraction ?? fraction }
+    private var shown: Double {
+        dragFraction ?? fraction
+    }
 
     var body: some View {
         GeometryReader { proxy in

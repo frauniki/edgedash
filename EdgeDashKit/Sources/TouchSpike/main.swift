@@ -41,13 +41,11 @@ func describe(_ device: IOHIDDevice) -> String {
     }
     let page = intProp(kIOHIDPrimaryUsagePageKey)
     let usage = intProp(kIOHIDPrimaryUsageKey)
-    let name: String
-    switch (page, usage) {
-    case (0x0D, 0x04): name = "digitizer/touchscreen"
-    case (0x01, 0x02): name = "boot mouse  ← the cursor-mover"
-    default: name = String(format: "vendor/other (page 0x%02X usage 0x%02X)", page, usage)
+    return switch (page, usage) {
+    case (0x0D, 0x04): "digitizer/touchscreen"
+    case (0x01, 0x02): "boot mouse  ← the cursor-mover"
+    default: String(format: "vendor/other (page 0x%02X usage 0x%02X)", page, usage)
     }
-    return name
 }
 
 // MARK: - Permission
@@ -134,8 +132,8 @@ IOHIDManagerRegisterInputValueCallback(manager, { _, _, _, value in
 
 cursorAtStart = cursorPosition()
 
-// Cursor drift is sampled on a timer, independent of HID callbacks — the
-// boot-mouse interface moves the cursor whether or not we see its reports.
+/// Cursor drift is sampled on a timer, independent of HID callbacks — the
+/// boot-mouse interface moves the cursor whether or not we see its reports.
 let driftTimer = CFRunLoopTimerCreateWithHandler(
     kCFAllocatorDefault, CFAbsoluteTimeGetCurrent() + 0.1, 0.1, 0, 0
 ) { _ in sampleCursorDrift() }

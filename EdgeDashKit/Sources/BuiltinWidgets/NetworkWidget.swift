@@ -13,7 +13,10 @@ public struct NetworkWidget: WidgetDefinition {
     }
 
     public static let typeID = WidgetTypeID("edgedash.network")
-    public static var displayName: String { loc("Network") }
+    public static var displayName: String {
+        loc("Network")
+    }
+
     public static let category = WidgetCategory.monitoring
     public static let supportedSizes = [
         GridSize(cols: 1, rows: 1), GridSize(cols: 2, rows: 1),
@@ -54,7 +57,8 @@ public struct NetworkWidget: WidgetDefinition {
         request.timeoutInterval = 5
         if let (data, response) = try? await URLSession.shared.data(for: request),
            (response as? HTTPURLResponse)?.statusCode == 200,
-           let text = String(data: data, encoding: .utf8), text.count < 64 {
+           let text = String(data: data, encoding: .utf8), text.count < 64
+        {
             address = text.trimmingCharacters(in: .whitespacesAndNewlines)
         }
         fetchedAt = Date() // also backs off after failures
@@ -156,7 +160,7 @@ private struct NetworkView: View {
         }
     }
 
-    @ViewBuilder private var infoRows: some View {
+    private var infoRows: some View {
         VStack(alignment: .leading, spacing: 3) {
             if config.showAddress {
                 infoRow(icon: "network", label: interfaceLine.isEmpty ? "offline" : interfaceLine, value: ipv4)

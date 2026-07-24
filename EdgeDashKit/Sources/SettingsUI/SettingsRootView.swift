@@ -54,9 +54,12 @@ public struct SettingsRootView: View {
         case appearance = "Appearance"
         case debug = "Debug"
 
-        var id: String { rawValue }
-        // rawValue stays English: it doubles as the `--pane` launch-arg key
-        // for scripted screenshots. Display goes through the catalog.
+        var id: String {
+            rawValue
+        }
+
+        /// rawValue stays English: it doubles as the `--pane` launch-arg key
+        /// for scripted screenshots. Display goes through the catalog.
         var title: String {
             switch self {
             case .dashboard: loc("Dashboard")
@@ -78,12 +81,13 @@ public struct SettingsRootView: View {
         }
     }
 
-    // Initial pane can be forced with `--pane <Name>` (dev hook for
-    // scripted UI screenshots alongside `--settings`).
+    /// Initial pane can be forced with `--pane <Name>` (dev hook for
+    /// scripted UI screenshots alongside `--settings`).
     @State private var pane: Pane = {
         if let flag = CommandLine.arguments.firstIndex(of: "--pane"),
            CommandLine.arguments.indices.contains(flag + 1),
-           let forced = Pane(rawValue: CommandLine.arguments[flag + 1]) {
+           let forced = Pane(rawValue: CommandLine.arguments[flag + 1])
+        {
             return forced
         }
         return .dashboard

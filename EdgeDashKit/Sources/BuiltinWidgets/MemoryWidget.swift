@@ -14,7 +14,10 @@ public struct MemoryWidget: WidgetDefinition {
     }
 
     public static let typeID = WidgetTypeID("edgedash.memory")
-    public static var displayName: String { loc("Memory") }
+    public static var displayName: String {
+        loc("Memory")
+    }
+
     public static let category = WidgetCategory.monitoring
     public static let supportedSizes = [
         GridSize(cols: 1, rows: 1), GridSize(cols: 2, rows: 1), GridSize(cols: 2, rows: 2),
@@ -64,7 +67,9 @@ private struct MemoryView: View {
         if case .composite(let v)? = breakdown.latest { v } else { [:] }
     }
 
-    private var total: Double { max(details["total"] ?? 1, 1) }
+    private var total: Double {
+        max(details["total"] ?? 1, 1)
+    }
 
     /// Ring segments in iStat order: app / wired / compressed.
     private var segments: [(fraction: Double, color: Color)] {

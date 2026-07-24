@@ -1,9 +1,9 @@
 import EdgeCore
 import SwiftUI
 
-/// Shared drawing components for widgets. Canvas-based — no Swift Charts on
-/// the per-second hot path. Track colors and glow come from the theme; the
-/// data color is passed by the widget (it encodes meaning: accent, warn…).
+// Shared drawing components for widgets. Canvas-based — no Swift Charts on
+// the per-second hot path. Track colors and glow come from the theme; the
+// data color is passed by the widget (it encodes meaning: accent, warn…).
 
 /// Common "TITLE          value" header line for widgets.
 public struct WidgetTitle: View {

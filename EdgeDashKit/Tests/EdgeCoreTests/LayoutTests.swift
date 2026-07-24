@@ -2,7 +2,7 @@ import EdgeCore
 import Foundation
 import Testing
 
-@Suite struct LayoutTests {
+struct LayoutTests {
     @Test func overlapDetection() {
         let a = GridRect(col: 0, row: 0, size: GridSize(cols: 2, rows: 1))
         let adjacent = GridRect(col: 2, row: 0, size: GridSize(cols: 1, rows: 1))
@@ -49,8 +49,8 @@ import Testing
                     type: WidgetTypeID("edgedash.cpu"),
                     frame: GridRect(col: 0, row: 0, size: GridSize(cols: 2, rows: 2)),
                     configData: Data("{}".utf8)
-                )
-            ])
+                ),
+            ]),
         ]
         let data = try JSONEncoder().encode(config)
         let decoded = try JSONDecoder().decode(DashboardConfig.self, from: data)

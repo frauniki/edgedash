@@ -1,7 +1,7 @@
-/// Device support is profile-driven, not hardcoded to the XENEON EDGE:
-/// a profile pairs a display identity with its touch controller. Known
-/// devices auto-detect; anything else works via manual display selection
-/// (and, later, generic HID digitizer discovery for touch).
+// Device support is profile-driven, not hardcoded to the XENEON EDGE:
+// a profile pairs a display identity with its touch controller. Known
+// devices auto-detect; anything else works via manual display selection
+// (and, later, generic HID digitizer discovery for touch).
 
 public struct DisplayIdentity: Hashable, Sendable, Codable {
     public let vendor: UInt32

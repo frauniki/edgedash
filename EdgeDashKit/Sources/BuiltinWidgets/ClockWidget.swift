@@ -11,13 +11,18 @@ public struct ClockWidget: WidgetDefinition {
     }
 
     public static let typeID = WidgetTypeID("edgedash.clock")
-    public static var displayName: String { loc("Clock") }
+    public static var displayName: String {
+        loc("Clock")
+    }
+
     public static let category = WidgetCategory.utility
     public static let supportedSizes = [
         GridSize(cols: 1, rows: 1), GridSize(cols: 2, rows: 1), GridSize(cols: 2, rows: 2),
     ]
 
-    public static func requiredMetrics(for config: Config) -> Set<MetricID> { [] }
+    public static func requiredMetrics(for config: Config) -> Set<MetricID> {
+        []
+    }
 
     @MainActor public static func makeView(config: Config, context: WidgetContext) -> AnyView {
         AnyView(ClockView(config: config))

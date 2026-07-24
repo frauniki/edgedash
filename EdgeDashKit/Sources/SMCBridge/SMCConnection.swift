@@ -11,25 +11,25 @@ import IOKit
 /// every following field by 3 bytes and made AppleSMC reject ALL calls with
 /// kIOReturnBadArgument — hence the explicit padding fields.
 struct SMCParamStruct {
-    var key: UInt32 = 0                                                  // 0
-    var vers: (UInt8, UInt8, UInt8, UInt8, UInt16) = (0, 0, 0, 0, 0)     // 4
-    private var pad0: UInt16 = 0                                         // 10
+    var key: UInt32 = 0 // 0
+    var vers: (UInt8, UInt8, UInt8, UInt8, UInt16) = (0, 0, 0, 0, 0) // 4
+    private var pad0: UInt16 = 0 // 10
     var pLimitData: (UInt16, UInt16, UInt32, UInt32, UInt32) = (0, 0, 0, 0, 0) // 12
-    var keyInfoDataSize: UInt32 = 0                                      // 28
-    var keyInfoDataType: UInt32 = 0                                      // 32
-    var keyInfoDataAttributes: UInt8 = 0                                 // 36
-    private var pad1: (UInt8, UInt8, UInt8) = (0, 0, 0)                  // 37
-    var result: UInt8 = 0                                                // 40
-    var status: UInt8 = 0                                                // 41
-    var data8: UInt8 = 0                                                 // 42
-    private var pad2: UInt8 = 0                                          // 43
-    var data32: UInt32 = 0                                               // 44
-    var bytes: (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,  // 48
+    var keyInfoDataSize: UInt32 = 0 // 28
+    var keyInfoDataType: UInt32 = 0 // 32
+    var keyInfoDataAttributes: UInt8 = 0 // 36
+    private var pad1: (UInt8, UInt8, UInt8) = (0, 0, 0) // 37
+    var result: UInt8 = 0 // 40
+    var status: UInt8 = 0 // 41
+    var data8: UInt8 = 0 // 42
+    private var pad2: UInt8 = 0 // 43
+    var data32: UInt32 = 0 // 44
+    var bytes: (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, // 48
                 UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
                 UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8,
                 UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8) =
         (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)                // = 80
+         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0) // = 80
 }
 
 private let kSMCHandleYPCEvent: UInt32 = 2
@@ -92,7 +92,7 @@ final class SMCConnection {
     /// "F0Ac" → big-endian FourCC. Pure; unit-tested.
     static func fourCC(_ key: String) -> UInt32? {
         let scalars = Array(key.unicodeScalars)
-        guard scalars.count == 4, scalars.allSatisfy({ $0.isASCII }) else { return nil }
+        guard scalars.count == 4, scalars.allSatisfy(\.isASCII) else { return nil }
         return scalars.reduce(0) { ($0 << 8) | UInt32($1.value) }
     }
 

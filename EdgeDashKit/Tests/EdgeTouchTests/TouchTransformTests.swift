@@ -3,8 +3,8 @@ import EdgeCore
 @testable import EdgeTouch
 import Testing
 
-@Suite struct TouchTransformTests {
-    // A touch near the panel's physical top-left corner, slightly inset.
+struct TouchTransformTests {
+    /// A touch near the panel's physical top-left corner, slightly inset.
     let p = CGPoint(x: 0.1, y: 0.2)
 
     @Test func identityAtZeroRotation() {

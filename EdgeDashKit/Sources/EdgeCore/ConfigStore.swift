@@ -97,7 +97,8 @@ import Observation
 
         if let data = try? Data(contentsOf: fileURL),
            data != lastWrittenData,
-           let loaded = try? JSONDecoder().decode(DashboardConfig.self, from: data) {
+           let loaded = try? JSONDecoder().decode(DashboardConfig.self, from: data)
+        {
             config = Self.migrate(loaded)
         }
         startWatching()

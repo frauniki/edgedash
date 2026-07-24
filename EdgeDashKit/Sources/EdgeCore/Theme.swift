@@ -38,19 +38,19 @@ public struct Theme: Codable, Sendable, Equatable, Identifiable {
     public var surfaceBottom: ThemeColor
     public var strokeTop: ThemeColor
     public var strokeBottom: ThemeColor
-    public var track: ThemeColor          // gauge/bar backgrounds
+    public var track: ThemeColor // gauge/bar backgrounds
 
     // Content
     public var textPrimary: ThemeColor
     public var textSecondary: ThemeColor
-    public var accent: ThemeColor         // primary data color (download, gauges)
-    public var accentAlt: ThemeColor      // counterpart data color (upload, writes)
+    public var accent: ThemeColor // primary data color (download, gauges)
+    public var accentAlt: ThemeColor // counterpart data color (upload, writes)
     public var warn: ThemeColor
     public var critical: ThemeColor
 
     // Chrome
     public var cornerRadius: Double
-    public var glowStrength: Double       // 0–1: how luminous charts render
+    public var glowStrength: Double // 0–1: how luminous charts render
 
     public init(
         id: ThemeID, name: String,

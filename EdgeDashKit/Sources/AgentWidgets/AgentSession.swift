@@ -63,8 +63,8 @@ public struct TokenTotals: Sendable, Equatable {
     /// 512 → "512", 51_200 → "51k", 38_400_000 → "38M".
     public static func text(_ tokens: Int) -> String {
         switch tokens {
-        case ..<1_000: "\(tokens)"
-        case ..<1_000_000: String(format: "%.0fk", Double(tokens) / 1_000)
+        case ..<1000: "\(tokens)"
+        case ..<1_000_000: String(format: "%.0fk", Double(tokens) / 1000)
         case ..<1_000_000_000: String(format: "%.1fM", Double(tokens) / 1_000_000)
         default: String(format: "%.2fB", Double(tokens) / 1_000_000_000)
         }

@@ -3,17 +3,22 @@ import EdgeCore
 import Foundation
 
 public extension MetricID {
-    static let memoryUsage = MetricID("mem.usage")           // scalar 0–1 (Activity Monitor "Used" / total)
-    static let memoryBreakdown = MetricID("mem.breakdown")   // composite, bytes
-    static let memoryPressure = MetricID("mem.pressure")     // scalar: 1 normal / 2 warning / 4 critical
+    static let memoryUsage = MetricID("mem.usage") // scalar 0–1 (Activity Monitor "Used" / total)
+    static let memoryBreakdown = MetricID("mem.breakdown") // composite, bytes
+    static let memoryPressure = MetricID("mem.pressure") // scalar: 1 normal / 2 warning / 4 critical
     static let memoryPressurePercent = MetricID("mem.pressurePct") // scalar 0–1 (1 − kern.memorystatus_level)
 }
 
 public struct MemoryReader: MetricReader {
     public init() {}
 
-    public var provides: [MetricID] { [.memoryUsage, .memoryBreakdown, .memoryPressure, .memoryPressurePercent] }
-    public var cadence: MetricCadence { .every(2) }
+    public var provides: [MetricID] {
+        [.memoryUsage, .memoryBreakdown, .memoryPressure, .memoryPressurePercent]
+    }
+
+    public var cadence: MetricCadence {
+        .every(2)
+    }
 
     public func read() throws -> [MetricSample] {
         var stats = vm_statistics64()

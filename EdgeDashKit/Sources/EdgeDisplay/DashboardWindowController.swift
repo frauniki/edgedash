@@ -10,7 +10,9 @@ import SwiftUI
 
     public init() {}
 
-    public var isVisible: Bool { window?.isVisible ?? false }
+    public var isVisible: Bool {
+        window?.isVisible ?? false
+    }
 
     /// Fullscreen takeover of the given screen.
     public func show(on screen: NSScreen, content: some View) {

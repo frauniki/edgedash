@@ -161,7 +161,8 @@ public actor ClaudeSessionScanner {
             while let newline = buffer.firstIndex(of: 0x0A) {
                 let line = buffer[buffer.startIndex..<newline]
                 if !line.isEmpty,
-                   let object = try? JSONSerialization.jsonObject(with: line) as? [String: Any] {
+                   let object = try? JSONSerialization.jsonObject(with: line) as? [String: Any]
+                {
                     Self.apply(Self.parse(object), to: &digest)
                 }
                 buffer = buffer[buffer.index(after: newline)...]
@@ -267,8 +268,8 @@ public actor ClaudeSessionScanner {
         model.hasPrefix("claude-") ? String(model.dropFirst("claude-".count)) : model
     }
 
-    // ISO8601DateFormatter is documented thread-safe; the annotation just
-    // tells Swift 6 we know.
+    /// ISO8601DateFormatter is documented thread-safe; the annotation just
+    /// tells Swift 6 we know.
     private nonisolated(unsafe) static let isoFractional: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]

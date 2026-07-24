@@ -10,7 +10,10 @@ public struct PowerWidget: WidgetDefinition {
     }
 
     public static let typeID = WidgetTypeID("edgedash.power")
-    public static var displayName: String { loc("Power") }
+    public static var displayName: String {
+        loc("Power")
+    }
+
     public static let category = WidgetCategory.monitoring
     public static let supportedSizes = [
         GridSize(cols: 1, rows: 1), GridSize(cols: 2, rows: 1),
@@ -41,7 +44,7 @@ private struct PowerView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             WidgetTitle(text: "POWER", value: watts.map { String(format: "%.1f W", $0) })
-            if let _ = watts {
+            if watts != nil {
                 if config.showHistory {
                     SparklineView(history: power.history, color: theme.accentAlt.color)
                         .frame(maxHeight: .infinity)

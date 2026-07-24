@@ -5,10 +5,9 @@ import Testing
 @testable import WidgetEngine
 
 private struct FakeWidget: WidgetDefinition {
-    struct Config: Codable, Sendable, DefaultInitializable {
+    struct Config: Codable, DefaultInitializable {
         var flavor = "default"
         var extra = false
-        init() {}
     }
 
     static let typeID = WidgetTypeID("test.fake")
@@ -29,7 +28,7 @@ private struct FakeWidget: WidgetDefinition {
     }
 }
 
-@Suite @MainActor struct RegistryTests {
+@MainActor struct RegistryTests {
     @Test func registerAndLookup() {
         let registry = WidgetRegistry()
         registry.register(FakeWidget.self)

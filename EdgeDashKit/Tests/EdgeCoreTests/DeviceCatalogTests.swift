@@ -1,8 +1,8 @@
 import EdgeCore
 import Testing
 
-@Suite struct DeviceCatalogTests {
-    // Real values captured from hardware on 2026-07-23.
+struct DeviceCatalogTests {
+    /// Real values captured from hardware on 2026-07-23.
     let edgeModes = [
         PixelSize(width: 2560, height: 720), PixelSize(width: 1920, height: 1080),
         PixelSize(width: 1280, height: 720), PixelSize(width: 640, height: 480),

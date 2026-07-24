@@ -2,7 +2,7 @@ import EdgeCore
 import Foundation
 import Testing
 
-@Suite @MainActor struct ConfigStoreTests {
+@MainActor struct ConfigStoreTests {
     private func tempDir() -> URL {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("edgedash-tests-\(UUID().uuidString)", isDirectory: true)

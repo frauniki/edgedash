@@ -65,8 +65,7 @@ private struct MetricRow: View {
     private static func compact(_ v: Double) -> String {
         v >= 1_000_000_000 ? String(format: "%.1fG", v / 1_073_741_824)
             : v >= 1_000_000 ? String(format: "%.0fM", v / 1_048_576)
-            : v >= 1_000 ? String(format: "%.0fK", v / 1_024)
+            : v >= 1000 ? String(format: "%.0fK", v / 1024)
             : String(format: "%.2f", v)
     }
 }
-

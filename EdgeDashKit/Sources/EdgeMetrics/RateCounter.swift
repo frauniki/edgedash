@@ -3,7 +3,7 @@ import Foundation
 
 /// Turns monotonically increasing byte counters into bytes/s using real
 /// elapsed time (the engine tick has tolerance, so wall-clock deltas matter).
-struct RateCounter: Sendable {
+struct RateCounter {
     private var previous: (in: UInt64, out: UInt64)?
     private var previousAt: ContinuousClock.Instant?
 

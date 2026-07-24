@@ -2,7 +2,7 @@ import Foundation
 @testable import SMCBridge
 import Testing
 
-@Suite struct SMCBridgeTests {
+struct SMCBridgeTests {
     @Test func fourCCEncoding() {
         #expect(SMCConnection.fourCC("FNum") == 0x464E_756D)
         #expect(SMCConnection.fourCC("F0Ac") == 0x4630_4163)
@@ -10,13 +10,13 @@ import Testing
         #expect(SMCConnection.fourCC("ab") == nil)
     }
 
-    @Test func floatDecoding() {
+    @Test func floatDecoding() throws {
         // "flt " little-endian: 1500.0f
         let bits = Float(1500).bitPattern
         let bytes = [UInt8(bits & 0xFF), UInt8((bits >> 8) & 0xFF), UInt8((bits >> 16) & 0xFF), UInt8((bits >> 24) & 0xFF)]
-        #expect(SMCConnection.decodeFloat(bytes: bytes, type: SMCConnection.fourCC("flt ")!) == 1500)
-        #expect(SMCConnection.decodeFloat(bytes: [3], type: SMCConnection.fourCC("ui8 ")!) == 3)
-        #expect(SMCConnection.decodeFloat(bytes: [0x0B, 0xB8], type: SMCConnection.fourCC("ui16")!) == 3000)
+        #expect(try SMCConnection.decodeFloat(bytes: bytes, type: #require(SMCConnection.fourCC("flt "))) == 1500)
+        #expect(try SMCConnection.decodeFloat(bytes: [3], type: #require(SMCConnection.fourCC("ui8 "))) == 3)
+        #expect(try SMCConnection.decodeFloat(bytes: [0x0B, 0xB8], type: #require(SMCConnection.fourCC("ui16"))) == 3000)
         #expect(SMCConnection.decodeFloat(bytes: [], type: 0) == nil)
     }
 

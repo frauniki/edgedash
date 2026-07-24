@@ -196,7 +196,8 @@ struct WallpaperBackground: View {
 
     private func reloadIfNeeded() {
         guard let target = screen ?? NSScreen.main,
-              let url = NSWorkspace.shared.desktopImageURL(for: target) else {
+              let url = NSWorkspace.shared.desktopImageURL(for: target)
+        else {
             image = nil
             return
         }

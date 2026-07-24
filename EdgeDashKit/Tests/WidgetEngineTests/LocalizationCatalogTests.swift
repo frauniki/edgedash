@@ -7,10 +7,12 @@ import Testing
 /// the source level: parseable JSON, every key fully translated to Japanese,
 /// and printf-style specifiers matching between key and translation (a
 /// mismatched specifier silently breaks the lookup or the substitution).
-@Suite struct LocalizationCatalogTests {
+struct LocalizationCatalogTests {
     private struct Catalog: Decodable {
         struct Entry: Decodable {
             struct Localization: Decodable {
+                // Mirrors the xcstrings shape.
+                // swiftlint:disable:next nesting
                 struct Unit: Decodable {
                     let state: String
                     let value: String

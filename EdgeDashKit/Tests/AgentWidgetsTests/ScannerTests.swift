@@ -1,6 +1,6 @@
+@testable import AgentWidgets
 import Foundation
 import Testing
-@testable import AgentWidgets
 
 // MARK: - Fixture helpers
 
@@ -20,9 +20,11 @@ private func assistantLine(
     cwd: String = "/Users/dev/myproject"
 ) -> String {
     let stopJSON = stop.map { "\"\($0)\"" } ?? "null"
+    // swiftlint:disable line_length
     return """
     {"type":"assistant","timestamp":"\(iso(timestamp))","cwd":"\(cwd)","gitBranch":"main","sessionId":"s1","message":{"model":"\(model)","stop_reason":\(stopJSON),"usage":{"input_tokens":\(input),"output_tokens":\(output),"cache_read_input_tokens":\(cacheRead)}}}
     """
+    // swiftlint:enable line_length
 }
 
 private func userPromptLine(timestamp: Date, cwd: String = "/Users/dev/myproject") -> String {
@@ -73,10 +75,12 @@ private struct FixtureTree {
 
 // MARK: - Pure parsing
 
-@Suite struct ParseTests {
+struct ParseTests {
     private let now = Date()
 
     private func parsed(_ json: String) -> ClaudeSessionScanner.ParsedLine {
+        // Fixture JSON is trusted.
+        // swiftlint:disable:next force_try force_cast
         let obj = try! JSONSerialization.jsonObject(with: Data(json.utf8)) as! [String: Any]
         return ClaudeSessionScanner.parse(obj)
     }
@@ -94,7 +98,8 @@ private struct FixtureTree {
 
     @Test func usageSplitsTokenClasses() {
         guard case .message(_, _, _, _, let model, let counts) =
-            parsed(assistantLine(stop: "end_turn", timestamp: now, output: 50, input: 7, cacheRead: 1000)) else {
+            parsed(assistantLine(stop: "end_turn", timestamp: now, output: 50, input: 7, cacheRead: 1000))
+        else {
             Issue.record("not a message"); return
         }
         #expect(counts == TokenCounts(input: 7, cacheRead: 1000, cacheWrite: 0, output: 50))
@@ -107,6 +112,7 @@ private struct FixtureTree {
     }
 
     @Test func stateClassification() {
+        // swiftlint:disable:next type_name
         typealias S = ClaudeSessionScanner
         // end_turn is "your turn" no matter how fresh.
         #expect(S.classify(lastShape: .assistantEndTurn, lastActivity: now, now: now) == .awaitingInput)
@@ -124,14 +130,14 @@ private struct FixtureTree {
         #expect(ClaudeSessionScanner.projectName(cwd: "/a/b/edgedash", containerDir: "/x") == "edgedash")
         #expect(ClaudeSessionScanner.shortModel("claude-fable-5") == "fable-5")
         #expect(TokenTotals.text(512) == "512")
-        #expect(TokenTotals.text(51_200) == "51k")
+        #expect(TokenTotals.text(51200) == "51k")
         #expect(TokenTotals.text(38_400_000) == "38.4M")
     }
 }
 
 // MARK: - Scanner integration
 
-@Suite struct ScannerTests {
+struct ScannerTests {
     @Test func fullScanBuildsSession() async throws {
         let tree = try FixtureTree()
         defer { tree.destroy() }

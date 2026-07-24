@@ -30,7 +30,7 @@ public struct TouchSettingsView: View {
         }
     }
 
-    @ViewBuilder private var statusSection: some View {
+    private var statusSection: some View {
         GroupBox(loc("Touch input")) {
             HStack(spacing: 10) {
                 Circle()
@@ -71,7 +71,7 @@ public struct TouchSettingsView: View {
         }
     }
 
-    @ViewBuilder private var testSection: some View {
+    private var testSection: some View {
         GroupBox(loc("Touch test")) {
             ZStack {
                 RoundedRectangle(cornerRadius: 8)

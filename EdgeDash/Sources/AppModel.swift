@@ -1,10 +1,10 @@
 import AgentWidgets
 import BuiltinWidgets
 import EdgeCore
-import MediaWidgets
 import EdgeDisplay
 import EdgeMetrics
 import EdgeTouch
+import MediaWidgets
 import Observation
 import SettingsUI
 import SMCBridge

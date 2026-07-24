@@ -35,7 +35,9 @@ public enum PlayerAvailability: Sendable, Equatable {
     private var notificationObserver: (any NSObjectProtocol)?
     private var artworkCache: [String: NSImage] = [:]
     private var artworkFetchID: String? // in-flight or cached key
-    var isPolling: Bool { pollTask != nil } // test hook
+    var isPolling: Bool {
+        pollTask != nil
+    } // test hook
 
     public init(transport: any MusicTransport, pollInterval: Duration = .seconds(1)) {
         self.transport = transport
@@ -66,11 +68,25 @@ public enum PlayerAvailability: Sendable, Equatable {
 
     // MARK: - Commands
 
-    public func playPause() { send(.playPause) }
-    public func nextTrack() { send(.nextTrack) }
-    public func previousTrack() { send(.previousTrack) }
-    public func seek(to seconds: Double) { send(.seek(to: seconds)) }
-    public func setVolume(_ volume: Double) { send(.setVolume(min(max(volume, 0), 1))) }
+    public func playPause() {
+        send(.playPause)
+    }
+
+    public func nextTrack() {
+        send(.nextTrack)
+    }
+
+    public func previousTrack() {
+        send(.previousTrack)
+    }
+
+    public func seek(to seconds: Double) {
+        send(.seek(to: seconds))
+    }
+
+    public func setVolume(_ volume: Double) {
+        send(.setVolume(min(max(volume, 0), 1)))
+    }
 
     public func toggleShuffle() {
         send(.setShuffle(!(now?.shuffle ?? false)))
@@ -90,8 +106,8 @@ public enum PlayerAvailability: Sendable, Equatable {
         NSWorkspace.shared.openApplication(at: url, configuration: NSWorkspace.OpenConfiguration())
     }
 
-    // Chained so rapid taps arrive at Music.app in order (independent Tasks
-    // would race on the hop to the transport queue).
+    /// Chained so rapid taps arrive at Music.app in order (independent Tasks
+    /// would race on the hop to the transport queue).
     private var commandChain: Task<Void, Never>?
 
     private func send(_ command: MusicCommand) {

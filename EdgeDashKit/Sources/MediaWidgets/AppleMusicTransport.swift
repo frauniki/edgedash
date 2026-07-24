@@ -3,8 +3,8 @@ import CoreServices
 import Foundation
 import ScriptingBridge
 
-// Minimal slice of Music.app's scripting interface (verified present in its
-// sdef on macOS 26.5). Selector names must match the sdef's cocoa keys.
+/// Minimal slice of Music.app's scripting interface (verified present in its
+/// sdef on macOS 26.5). Selector names must match the sdef's cocoa keys.
 @objc private protocol MusicApplicationSB {
     @objc optional var playerState: UInt32 { get }
     @objc optional var playerPosition: Double { get }
@@ -31,10 +31,10 @@ import ScriptingBridge
     @objc optional func artworks() -> SBElementArray
 }
 
-// Artwork payload types are messy: sdef says `data` is a "picture" (NSImage)
-// and `raw data`'s value-type is commented out — SB may hand back NSImage,
-// NSData, or NSAppleEventDescriptor. Declaring Swift `Data` here made the
-// bridge throw doesNotRecognizeSelector (crash), so take `Any` and convert.
+/// Artwork payload types are messy: sdef says `data` is a "picture" (NSImage)
+/// and `raw data`'s value-type is commented out — SB may hand back NSImage,
+/// NSData, or NSAppleEventDescriptor. Declaring Swift `Data` here made the
+/// bridge throw doesNotRecognizeSelector (crash), so take `Any` and convert.
 @objc private protocol MusicArtworkSB {
     @objc optional var rawData: Any { get }
     @objc optional var data: Any { get }
@@ -43,7 +43,7 @@ import ScriptingBridge
 extension SBApplication: MusicApplicationSB {}
 extension SBObject: MusicTrackSB, MusicArtworkSB {}
 
-// Music.app four-char codes.
+/// Music.app four-char codes.
 private enum FourCC {
     static let statePlaying: UInt32 = 0x6B50_5350 // 'kPSP'
     static let statePaused: UInt32 = 0x6B50_5370 // 'kPSp'
@@ -115,13 +115,13 @@ public final class AppleMusicTransport: MusicTransport, @unchecked Sendable {
     private static func imageData(from value: Any?) -> Data? {
         switch value {
         case let data as Data:
-            return data
+            data
         case let image as NSImage:
-            return image.tiffRepresentation
+            image.tiffRepresentation
         case let descriptor as NSAppleEventDescriptor:
-            return descriptor.data.isEmpty ? nil : descriptor.data
+            descriptor.data.isEmpty ? nil : descriptor.data
         default:
-            return nil
+            nil
         }
     }
 
@@ -157,8 +157,8 @@ public final class AppleMusicTransport: MusicTransport, @unchecked Sendable {
         }
     }
 
-    // @objc optional members dispatch through the protocol existential, not
-    // the SBApplication class type — hence the return type.
+    /// @objc optional members dispatch through the protocol existential, not
+    /// the SBApplication class type — hence the return type.
     private func application() -> MusicApplicationSB? {
         if app == nil {
             app = SBApplication(bundleIdentifier: Self.bundleID)

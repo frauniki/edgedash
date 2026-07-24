@@ -11,7 +11,10 @@ public struct FanWidget: WidgetDefinition {
     }
 
     public static let typeID = WidgetTypeID("edgedash.fan")
-    public static var displayName: String { loc("Fans") }
+    public static var displayName: String {
+        loc("Fans")
+    }
+
     public static let category = WidgetCategory.monitoring
     public static let supportedSizes = [
         GridSize(cols: 1, rows: 1), GridSize(cols: 2, rows: 1), GridSize(cols: 2, rows: 2),

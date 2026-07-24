@@ -13,8 +13,13 @@ public final class NetworkReader: MetricReader, @unchecked Sendable {
 
     public init() {}
 
-    public var provides: [MetricID] { [.networkThroughput] }
-    public var cadence: MetricCadence { .everyTick }
+    public var provides: [MetricID] {
+        [.networkThroughput]
+    }
+
+    public var cadence: MetricCadence {
+        .everyTick
+    }
 
     public func read() throws -> [MetricSample] {
         let primary = Self.primaryInterface()
@@ -26,7 +31,8 @@ public final class NetworkReader: MetricReader, @unchecked Sendable {
     /// Routing-table primary interface (e.g. "en0"), from SCDynamicStore.
     public static func primaryInterface() -> String? {
         guard let store = SCDynamicStoreCreate(nil, "EdgeDash" as CFString, nil, nil),
-              let value = SCDynamicStoreCopyValue(store, "State:/Network/Global/IPv4" as CFString) as? [String: Any] else {
+              let value = SCDynamicStoreCopyValue(store, "State:/Network/Global/IPv4" as CFString) as? [String: Any]
+        else {
             return nil
         }
         return value["PrimaryInterface"] as? String

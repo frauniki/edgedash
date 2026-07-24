@@ -14,7 +14,7 @@ public struct ClaudeCodeWidget: WidgetDefinition {
         public var showCost = true
         public init() {}
 
-        // Lenient decoding: adding fields must not reset saved configs.
+        /// Lenient decoding: adding fields must not reset saved configs.
         private enum CodingKeys: String, CodingKey {
             case windowHours, maxRows, showTokens, showTitles, showBranch, showLimits, showCost
         }
@@ -39,7 +39,9 @@ public struct ClaudeCodeWidget: WidgetDefinition {
         GridSize(cols: 2, rows: 2), GridSize(cols: 4, rows: 2),
     ]
 
-    public static func requiredMetrics(for config: Config) -> Set<MetricID> { [] }
+    public static func requiredMetrics(for config: Config) -> Set<MetricID> {
+        []
+    }
 
     @MainActor public static func makeView(config: Config, context: WidgetContext) -> AnyView {
         guard let monitor = context.services.resolve(ClaudeCodeMonitor.self) else {
@@ -206,7 +208,7 @@ private struct ClaudeCodeView: View {
 
     private func limitRow(_ window: UsageLimits.Window, forecast: ClaudeCodeMonitor.Forecast?) -> some View {
         let fraction = min(max(window.percent / 100, 0), 1)
-        let untilReset = window.resetsAt.map { $0.timeIntervalSinceNow }
+        let untilReset = window.resetsAt.map(\.timeIntervalSinceNow)
         return HStack(spacing: 6) {
             Text(window.label)
                 .font(.system(size: 10, weight: .medium, design: .rounded))

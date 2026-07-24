@@ -2,7 +2,7 @@ import CoreGraphics
 @testable import EdgeTouch
 import Testing
 
-@Suite @MainActor struct TouchRouterTests {
+@MainActor struct TouchRouterTests {
     private final class Recorder {
         var events: [TouchEvent] = []
     }

@@ -41,8 +41,13 @@ public struct WeatherSnapshot: Sendable, Equatable {
     public var utcOffsetSeconds: Int
 
     /// Today's range for the compact layouts; falls back to the hourly span.
-    public var todayHigh: Double? { daily.first?.high }
-    public var todayLow: Double? { daily.first?.low }
+    public var todayHigh: Double? {
+        daily.first?.high
+    }
+
+    public var todayLow: Double? {
+        daily.first?.low
+    }
 }
 
 /// WMO weather interpretation codes → SF Symbols + text.

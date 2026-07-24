@@ -25,8 +25,13 @@ public final class ProcessReader: MetricReader, @unchecked Sendable {
 
     public init() {}
 
-    public var provides: [MetricID] { [.topProcessesCPU, .topProcessesMemory] }
-    public var cadence: MetricCadence { .every(5) }
+    public var provides: [MetricID] {
+        [.topProcessesCPU, .topProcessesMemory]
+    }
+
+    public var cadence: MetricCadence {
+        .every(5)
+    }
 
     public func read() throws -> [MetricSample] {
         let now = mach_absolute_time()

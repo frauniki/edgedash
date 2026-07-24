@@ -3,14 +3,20 @@ import EdgeMetrics
 import Testing
 
 private struct FakeReader: MetricReader {
-    var provides: [MetricID] { [MetricID("test.fake")] }
-    var cadence: MetricCadence { .everyTick }
+    var provides: [MetricID] {
+        [MetricID("test.fake")]
+    }
+
+    var cadence: MetricCadence {
+        .everyTick
+    }
+
     func read() throws -> [MetricSample] {
         [MetricSample(id: MetricID("test.fake"), value: .scalar(0.5))]
     }
 }
 
-@Suite struct MetricsEngineTests {
+struct MetricsEngineTests {
     @Test func registrationExposesMetricIDs() async {
         let engine = MetricsEngine()
         await engine.register(FakeReader())

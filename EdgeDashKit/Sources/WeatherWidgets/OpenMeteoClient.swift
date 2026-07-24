@@ -3,6 +3,8 @@
 
 import Foundation
 
+// Field names mirror the wire format.
+// swiftlint:disable identifier_name
 /// Raw wire format. Numeric forecast arrays may contain nulls depending on
 /// region/model, so every element is optional and the snapshot builder
 /// drops/repairs gaps.
@@ -37,6 +39,8 @@ public struct ForecastResponse: Decodable, Sendable {
     var hourly: Hourly
     var daily: Daily
 }
+
+// swiftlint:enable identifier_name
 
 public struct GeocodedPlace: Sendable, Equatable, Identifiable {
     public var id: Int
@@ -82,6 +86,7 @@ public enum OpenMeteoClient {
                 var latitude: Double
                 var longitude: Double
             }
+
             var results: [Result]?
         }
         var components = URLComponents(string: "https://geocoding-api.open-meteo.com/v1/search")!

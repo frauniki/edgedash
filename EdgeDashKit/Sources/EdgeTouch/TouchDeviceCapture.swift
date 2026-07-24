@@ -39,11 +39,11 @@ private let log = Logger(subsystem: "jp.sinoa.edgedash", category: "touch")
     private var manager: IOHIDManager?
     private let match: TouchDeviceMatch
 
-    // Values are matched by usage page/usage AT DELIVERY TIME (the approach
-    // proven by the M0.5 spike) with normalization ranges read from the
-    // firing element itself. The seized boot-mouse interface also emits
-    // GD_X/GD_Y (relative deltas), so values are accepted only from the
-    // digitizer interface(s).
+    /// Values are matched by usage page/usage AT DELIVERY TIME (the approach
+    /// proven by the M0.5 spike) with normalization ranges read from the
+    /// firing element itself. The seized boot-mouse interface also emits
+    /// GD_X/GD_Y (relative deltas), so values are accepted only from the
+    /// digitizer interface(s).
     private var digitizerDevices: Set<IOHIDDevice> = []
 
     private var currentX: Double = 0
@@ -148,12 +148,12 @@ private let log = Logger(subsystem: "jp.sinoa.edgedash", category: "touch")
 
     // MARK: - Input
 
-    // Hardware-verified (2026-07): with all interfaces seized, the EDGE's
-    // digitizer interface stays silent — touches arrive on the boot-pointer
-    // interface as ABSOLUTE X/Y (full digitizer range) plus a primary
-    // button for contact. So values are accepted from any seized interface:
-    // absolute-axis X/Y for position (relative mouse deltas are filtered by
-    // their logical range) and tip switch OR primary button for contact.
+    /// Hardware-verified (2026-07): with all interfaces seized, the EDGE's
+    /// digitizer interface stays silent — touches arrive on the boot-pointer
+    /// interface as ABSOLUTE X/Y (full digitizer range) plus a primary
+    /// button for contact. So values are accepted from any seized interface:
+    /// absolute-axis X/Y for position (relative mouse deltas are filtered by
+    /// their logical range) and tip switch OR primary button for contact.
     private func handle(value: IOHIDValue) {
         let element = IOHIDValueGetElement(value)
         let page = Int(IOHIDElementGetUsagePage(element))

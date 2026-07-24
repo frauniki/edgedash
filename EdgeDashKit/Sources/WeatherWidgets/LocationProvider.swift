@@ -74,19 +74,19 @@ import Observation
 }
 
 extension LocationProvider: CLLocationManagerDelegate {
-    // Delegate callbacks land on the thread that created the manager (main
-    // here), but the protocol is nonisolated in Swift 6 — hop explicitly.
-    nonisolated public func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+    /// Delegate callbacks land on the thread that created the manager (main
+    /// here), but the protocol is nonisolated in Swift 6 — hop explicitly.
+    public nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         Task { @MainActor [weak self] in self?.requestIfNeeded() }
     }
 
-    nonisolated public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+    public nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let coordinate = locations.last?.coordinate else { return }
         let (latitude, longitude) = (coordinate.latitude, coordinate.longitude)
         Task { @MainActor [weak self] in self?.handleFix(latitude: latitude, longitude: longitude) }
     }
 
-    nonisolated public func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+    public nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         Task { @MainActor [weak self] in
             guard let self else { return }
             // The implicit request made while consent is pending fails with

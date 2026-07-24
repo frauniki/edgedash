@@ -3,8 +3,13 @@ import Foundation
 /// Identifies a widget implementation, e.g. "edgedash.cpu".
 public struct WidgetTypeID: Hashable, Codable, Sendable, RawRepresentable {
     public let rawValue: String
-    public init(rawValue: String) { self.rawValue = rawValue }
-    public init(_ rawValue: String) { self.rawValue = rawValue }
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(_ rawValue: String) {
+        self.rawValue = rawValue
+    }
 }
 
 /// Size in grid units. The grid is resolution-independent: cell point size is
@@ -29,8 +34,13 @@ public struct GridRect: Codable, Hashable, Sendable {
         self.size = size
     }
 
-    public var maxCol: Int { col + size.cols }
-    public var maxRow: Int { row + size.rows }
+    public var maxCol: Int {
+        col + size.cols
+    }
+
+    public var maxRow: Int {
+        row + size.rows
+    }
 
     public func overlaps(_ other: GridRect) -> Bool {
         col < other.maxCol && other.col < maxCol && row < other.maxRow && other.row < maxRow
@@ -79,7 +89,7 @@ public struct WidgetPlacement: Codable, Identifiable, Sendable {
         self.chrome = chrome
     }
 
-    // Manual decoding so configs written before `chrome` existed stay valid.
+    /// Manual decoding so configs written before `chrome` existed stay valid.
     private enum CodingKeys: String, CodingKey {
         case id, type, frame, configData, chrome
     }
@@ -130,8 +140,8 @@ public struct GlobalOptions: Codable, Sendable, Equatable {
         self.backgroundBlurRadius = backgroundBlurRadius
     }
 
-    // Manual codec so configs written before these knobs existed stay valid
-    // (including the short-lived boolean `backgroundBlur`).
+    /// Manual codec so configs written before these knobs existed stay valid
+    /// (including the short-lived boolean `backgroundBlur`).
     private enum CodingKeys: String, CodingKey {
         case keepAwake, backgroundOpacity, backgroundBlurRadius, backgroundBlur
     }
@@ -159,8 +169,13 @@ public struct GlobalOptions: Codable, Sendable, Equatable {
 
 public struct ThemeID: Hashable, Codable, Sendable, RawRepresentable {
     public let rawValue: String
-    public init(rawValue: String) { self.rawValue = rawValue }
-    public init(_ rawValue: String) { self.rawValue = rawValue }
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(_ rawValue: String) {
+        self.rawValue = rawValue
+    }
 
     public static let graphite = ThemeID("graphite")
 }

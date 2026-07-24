@@ -1,8 +1,8 @@
+@testable import AgentWidgets
 import Foundation
 import Testing
-@testable import AgentWidgets
 
-@Suite struct CostModelTests {
+struct CostModelTests {
     @Test func pricingByTokenClass() {
         // fable: $5/M in, $25/M out; cache read 10%, cache write 125%.
         let counts = TokenCounts(input: 1_000_000, cacheRead: 10_000_000, cacheWrite: 1_000_000, output: 1_000_000)
@@ -19,8 +19,8 @@ import Testing
         let stats = UsageStats.build(
             byDayModel: [
                 today: [
-                    "claude-fable-5": TokenCounts(output: 1_000_000),      // $25
-                    "claude-haiku-4-5": TokenCounts(output: 1_000_000),    // $5
+                    "claude-fable-5": TokenCounts(output: 1_000_000), // $25
+                    "claude-haiku-4-5": TokenCounts(output: 1_000_000), // $5
                 ],
                 yesterday: ["claude-fable-5": TokenCounts(output: 2_000_000)], // $50
             ],
@@ -37,27 +37,27 @@ import Testing
         #expect(abs(stats.dailyCosts[28] - 50) < 0.001)
     }
 
-    @Test func depletionForecast() {
+    @Test func depletionForecast() throws {
         let now = Date()
         // 10% burned in 30 min → 40% left → 2h to depletion.
         let samples: [(Date, Double)] = [(now.addingTimeInterval(-1800), 50), (now, 60)]
         let eta = ClaudeCodeMonitor.depletion(samples: samples)
         #expect(eta != nil)
-        #expect(abs(eta! - 4 * 1800) < 1)
+        #expect(try abs(#require(eta) - 4 * 1800) < 1)
         // Flat usage → no forecast; single sample → no forecast.
         #expect(ClaudeCodeMonitor.depletion(samples: [(now.addingTimeInterval(-1800), 50), (now, 50.2)]) == nil)
         #expect(ClaudeCodeMonitor.depletion(samples: [(now, 50)]) == nil)
     }
 
     @Test func durationFormatting() {
-        #expect(ClaudeCodeWidgetDuration(125 * 60) == "2h05m")
-        #expect(ClaudeCodeWidgetDuration(48 * 60) == "48m")
-        #expect(ClaudeCodeWidgetDuration((6 * 24 + 10) * 3600) == "6d10h")
+        #expect(claudeCodeWidgetDuration(125 * 60) == "2h05m")
+        #expect(claudeCodeWidgetDuration(48 * 60) == "48m")
+        #expect(claudeCodeWidgetDuration((6 * 24 + 10) * 3600) == "6d10h")
     }
 }
 
 /// Internal indirection: the formatter lives on the (private-view-owning)
 /// widget type.
-private func ClaudeCodeWidgetDuration(_ seconds: TimeInterval) -> String {
+private func claudeCodeWidgetDuration(_ seconds: TimeInterval) -> String {
     ClaudeCodeWidget.duration(seconds)
 }

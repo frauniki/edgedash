@@ -15,8 +15,13 @@ public struct UsageLimits: Sendable, Equatable {
         /// Scoped windows carry what they apply to (e.g. a model group).
         public var scope: String?
 
-        public var id: String { kind + (scope ?? "") }
-        public var remaining: Double { max(0, 100 - percent) }
+        public var id: String {
+            kind + (scope ?? "")
+        }
+
+        public var remaining: Double {
+            max(0, 100 - percent)
+        }
 
         public init(kind: String, percent: Double, resetsAt: Date? = nil, severity: String? = nil, scope: String? = nil) {
             self.kind = kind
@@ -46,9 +51,17 @@ public struct UsageLimits: Sendable, Equatable {
     /// "Max 5x" etc., from the local credentials' rate-limit tier.
     public var plan: String?
 
-    public var session: Window? { windows.first { $0.kind == "session" } }
-    public var weeklyAll: Window? { windows.first { $0.kind == "weekly_all" } }
-    public var weeklyScoped: Window? { windows.first { $0.kind == "weekly_scoped" } }
+    public var session: Window? {
+        windows.first { $0.kind == "session" }
+    }
+
+    public var weeklyAll: Window? {
+        windows.first { $0.kind == "weekly_all" }
+    }
+
+    public var weeklyScoped: Window? {
+        windows.first { $0.kind == "weekly_scoped" }
+    }
 
     public init(windows: [Window] = [], plan: String? = nil) {
         self.windows = windows

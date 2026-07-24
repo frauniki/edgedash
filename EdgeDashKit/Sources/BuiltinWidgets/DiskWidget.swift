@@ -10,7 +10,7 @@ public struct DiskWidget: WidgetDefinition {
         public var volumePath = "/"
         public init() {}
 
-        // Lenient decoding: adding fields must not reset saved configs.
+        /// Lenient decoding: adding fields must not reset saved configs.
         private enum CodingKeys: String, CodingKey { case showIO, showCapacity, volumePath }
 
         public init(from decoder: Decoder) throws {
@@ -22,7 +22,10 @@ public struct DiskWidget: WidgetDefinition {
     }
 
     public static let typeID = WidgetTypeID("edgedash.disk")
-    public static var displayName: String { loc("Disk") }
+    public static var displayName: String {
+        loc("Disk")
+    }
+
     public static let category = WidgetCategory.monitoring
     public static let supportedSizes = [
         GridSize(cols: 1, rows: 1), GridSize(cols: 2, rows: 1), GridSize(cols: 2, rows: 2),

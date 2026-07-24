@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
-import Testing
 @testable import MediaWidgets
+import Testing
 
 /// Scriptable in-memory transport: tests drive the state Music.app would
 /// report and observe the commands the controller sends.
@@ -29,14 +29,22 @@ final class FakeTransport: MusicTransport, @unchecked Sendable {
         set { lock.withLock { _error = newValue } }
     }
 
-    var commands: [MusicCommand] { lock.withLock { _commands } }
-    var artworkFetches: [String?] { lock.withLock { _artworkFetches } }
+    var commands: [MusicCommand] {
+        lock.withLock { _commands }
+    }
+
+    var artworkFetches: [String?] {
+        lock.withLock { _artworkFetches }
+    }
+
     var artworkData: Data? {
         get { lock.withLock { _artworkData } }
         set { lock.withLock { _artworkData = newValue } }
     }
 
-    func isRunning() async -> Bool { running }
+    func isRunning() async -> Bool {
+        running
+    }
 
     func fetchNowPlaying() async throws -> NowPlayingState {
         if let error { throw error }
@@ -79,7 +87,7 @@ private func tinyPNG() -> Data {
     #expect(condition(), comment)
 }
 
-@Suite @MainActor struct MusicPlayerControllerTests {
+@MainActor struct MusicPlayerControllerTests {
     private func makeController(
         _ transport: FakeTransport
     ) -> MusicPlayerController {
@@ -207,7 +215,7 @@ private func tinyPNG() -> Data {
     }
 }
 
-@Suite struct NowPlayingStateTests {
+struct NowPlayingStateTests {
     @Test func progressClamps() {
         #expect(NowPlayingState(duration: 100, position: 25).progress == 0.25)
         #expect(NowPlayingState(duration: 100, position: 150).progress == 1)

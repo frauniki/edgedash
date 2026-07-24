@@ -14,8 +14,13 @@ public struct TokenCounts: Sendable, Equatable {
         self.output = output
     }
 
-    public var allInput: Int { input + cacheRead + cacheWrite }
-    public var total: Int { allInput + output }
+    public var allInput: Int {
+        input + cacheRead + cacheWrite
+    }
+
+    public var total: Int {
+        allInput + output
+    }
 
     public mutating func add(_ other: TokenCounts) {
         input += other.input

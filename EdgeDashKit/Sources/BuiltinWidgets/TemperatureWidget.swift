@@ -19,7 +19,7 @@ public struct TemperatureWidget: WidgetDefinition {
         public var fahrenheit = false
         public init() {}
 
-        // Lenient decoding: adding fields must not reset saved configs.
+        /// Lenient decoding: adding fields must not reset saved configs.
         private enum CodingKeys: String, CodingKey {
             case showTemperatures, showFans, showCoreClock, showPower, sensorFilters, maxRows, fahrenheit
         }
@@ -37,7 +37,10 @@ public struct TemperatureWidget: WidgetDefinition {
     }
 
     public static let typeID = WidgetTypeID("edgedash.temperature")
-    public static var displayName: String { loc("Sensors") }
+    public static var displayName: String {
+        loc("Sensors")
+    }
+
     public static let category = WidgetCategory.monitoring
     public static let supportedSizes = [
         GridSize(cols: 1, rows: 1), GridSize(cols: 1, rows: 2),
@@ -79,7 +82,9 @@ private struct SensorsView: View {
     let size: GridSize
 
     /// The 1×1 cell is too narrow for name + meter + value; drop the meters.
-    private var showsMeter: Bool { size.cols > 1 || size.rows > 1 }
+    private var showsMeter: Bool {
+        size.cols > 1 || size.rows > 1
+    }
 
     // MARK: - Data
 
@@ -94,7 +99,7 @@ private struct SensorsView: View {
         return entries
             .sorted { $0.celsius > $1.celsius }
             .prefix(max(1, config.maxRows))
-            .map { $0 }
+            .map(\.self)
     }
 
     private var fanRows: [(name: String, rpm: Double)] {

@@ -1,8 +1,8 @@
+@testable import AgentWidgets
 import Foundation
 import Testing
-@testable import AgentWidgets
 
-@Suite struct UsageLimitsTests {
+struct UsageLimitsTests {
     /// Shape captured live from api.anthropic.com/api/oauth/usage.
     private let fixture = """
     {

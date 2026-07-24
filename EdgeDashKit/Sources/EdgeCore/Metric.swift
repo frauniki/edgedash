@@ -4,10 +4,17 @@ import Foundation
 public struct MetricID: Hashable, Codable, Sendable, RawRepresentable, CustomStringConvertible {
     public let rawValue: String
 
-    public init(rawValue: String) { self.rawValue = rawValue }
-    public init(_ rawValue: String) { self.rawValue = rawValue }
+    public init(rawValue: String) {
+        self.rawValue = rawValue
+    }
 
-    public var description: String { rawValue }
+    public init(_ rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public var description: String {
+        rawValue
+    }
 }
 
 public enum MetricValue: Sendable, Equatable {

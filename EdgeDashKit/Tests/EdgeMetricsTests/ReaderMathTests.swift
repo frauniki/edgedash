@@ -2,7 +2,7 @@ import EdgeCore
 import EdgeMetrics
 import Testing
 
-@Suite struct ReaderMathTests {
+struct ReaderMathTests {
     @Test func cpuUsageDelta() {
         let prev = [
             CPUReader.CoreTicks(user: 100, system: 50, idle: 850, nice: 0),
@@ -10,7 +10,7 @@ import Testing
         ]
         let curr = [
             CPUReader.CoreTicks(user: 200, system: 100, idle: 1000, nice: 0), // busy 150 / total 300
-            CPUReader.CoreTicks(user: 0, system: 0, idle: 2000, nice: 0),     // idle core
+            CPUReader.CoreTicks(user: 0, system: 0, idle: 2000, nice: 0), // idle core
         ]
         let usage = CPUReader.usage(previous: prev, current: curr)
         #expect(usage.count == 2)

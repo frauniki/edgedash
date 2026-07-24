@@ -21,7 +21,9 @@ public struct DashboardSettingsView: View {
         self.services = services
     }
 
-    private var config: DashboardConfig { configStore.config }
+    private var config: DashboardConfig {
+        configStore.config
+    }
 
     private var selectedPage: DashboardPage? {
         config.pages.first { $0.id == selectedPageID } ?? config.pages.first
@@ -264,7 +266,8 @@ public struct DashboardSettingsView: View {
     @ViewBuilder
     private func inspector(page: DashboardPage) -> some View {
         if let placement = selectedPlacement(in: page),
-           let definition = registry.definition(for: placement.type) {
+           let definition = registry.definition(for: placement.type)
+        {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     Text(definition.displayName)

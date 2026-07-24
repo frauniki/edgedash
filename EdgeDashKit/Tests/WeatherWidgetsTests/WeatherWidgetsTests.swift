@@ -21,7 +21,7 @@ private func fixtureData() throws -> Data {
     #expect(condition(), "condition not met within \(timeout)s")
 }
 
-@Suite struct SnapshotBuildingTests {
+struct SnapshotBuildingTests {
     @Test func decodesRealResponseAndBuildsSnapshot() throws {
         let response = try JSONDecoder().decode(ForecastResponse.self, from: fixtureData())
         let snapshot = try #require(OpenMeteoClient.snapshot(from: response, fetchedAt: Date()))
@@ -105,8 +105,10 @@ private func fixtureData() throws -> Data {
 
     @Test func conditionMappingCoversWMOCodes() {
         // Every published WMO code maps to a specific symbol, day and night.
-        let known = [0, 1, 2, 3, 45, 48, 51, 53, 55, 56, 57, 61, 63, 65, 66, 67,
-                     71, 73, 75, 77, 80, 81, 82, 85, 86, 95, 96, 99]
+        let known = [
+            0, 1, 2, 3, 45, 48, 51, 53, 55, 56, 57, 61, 63, 65, 66, 67,
+            71, 73, 75, 77, 80, 81, 82, 85, 86, 95, 96, 99,
+        ]
         for code in known {
             #expect(WeatherCondition.text(code: code) != "—", "code \(code) unmapped")
             #expect(!WeatherCondition.symbol(code: code, isDay: true).isEmpty)
@@ -119,7 +121,7 @@ private func fixtureData() throws -> Data {
     }
 }
 
-@Suite struct WeatherMonitorTests {
+struct WeatherMonitorTests {
     /// Fetch-call bookkeeping the MainActor-bound `eventually` can read
     /// without suspension.
     @MainActor private final class Probe {
@@ -188,7 +190,7 @@ private func fixtureData() throws -> Data {
     }
 }
 
-@Suite struct WeatherConfigTests {
+struct WeatherConfigTests {
     @Test func lenientDecoding() throws {
         let empty = try JSONDecoder().decode(WeatherWidget.Config.self, from: Data("{}".utf8))
         #expect(empty.mode == .auto)

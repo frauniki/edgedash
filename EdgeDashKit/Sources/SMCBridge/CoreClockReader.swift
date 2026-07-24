@@ -13,8 +13,13 @@ public extension MetricID {
 /// with runtime detection: if anything is missing we report nothing and the
 /// widget degrades to "unavailable".
 public final class CoreClockReader: MetricReader, @unchecked Sendable {
-    public var provides: [MetricID] { [.cpuClock] }
-    public var cadence: MetricCadence { .everyTick }
+    public var provides: [MetricID] {
+        [.cpuClock]
+    }
+
+    public var cadence: MetricCadence {
+        .everyTick
+    }
 
     private let bridge = IOReportBridge.shared
     private var previous: CFDictionary? // engine calls read() serially
@@ -60,6 +65,7 @@ final class IOReportBridge: @unchecked Sendable {
     static let shared = IOReportBridge()
 
     private typealias CopyChannelsFn = @convention(c) (CFString, CFString?, UInt64, UInt64, UInt64) -> Unmanaged<CFMutableDictionary>?
+    // swiftlint:disable:next line_length
     private typealias CreateSubscriptionFn = @convention(c) (UnsafeMutableRawPointer?, CFMutableDictionary, UnsafeMutablePointer<Unmanaged<CFMutableDictionary>?>?, UInt64, CFTypeRef?) -> UnsafeMutableRawPointer?
     private typealias CreateSamplesFn = @convention(c) (UnsafeMutableRawPointer, CFMutableDictionary, CFTypeRef?) -> Unmanaged<CFDictionary>?
     private typealias SamplesDeltaFn = @convention(c) (CFDictionary, CFDictionary, CFTypeRef?) -> Unmanaged<CFDictionary>?
@@ -88,8 +94,13 @@ final class IOReportBridge: @unchecked Sendable {
     private let eFrequencies: [Double]
     private let pFrequencies: [Double]
 
-    var eMaxMHz: Double { eFrequencies.last ?? 0 }
-    var pMaxMHz: Double { pFrequencies.last ?? 0 }
+    var eMaxMHz: Double {
+        eFrequencies.last ?? 0
+    }
+
+    var pMaxMHz: Double {
+        pFrequencies.last ?? 0
+    }
 
     /// nil when the private API is unavailable (future macOS, Intel, …).
     private init?() {
@@ -127,7 +138,8 @@ final class IOReportBridge: @unchecked Sendable {
         if let channels = copyChannels("Energy Model" as CFString, nil, 0, 0, 0)?.takeRetainedValue() {
             var subbedEnergy: Unmanaged<CFMutableDictionary>?
             if let sub = createSubscription(nil, channels, &subbedEnergy, 0, nil),
-               let dict = subbedEnergy?.takeRetainedValue() {
+               let dict = subbedEnergy?.takeRetainedValue()
+            {
                 energySubscription = sub
                 energyChannels = dict
             }

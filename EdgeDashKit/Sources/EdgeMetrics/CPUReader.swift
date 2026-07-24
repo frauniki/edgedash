@@ -3,12 +3,12 @@ import EdgeCore
 import Foundation
 
 public extension MetricID {
-    static let cpuUsage = MetricID("cpu.usage")         // scalar 0–1
-    static let cpuPerCore = MetricID("cpu.perCore")     // perCore 0–1
+    static let cpuUsage = MetricID("cpu.usage") // scalar 0–1
+    static let cpuPerCore = MetricID("cpu.perCore") // perCore 0–1
     static let cpuLoadAverage = MetricID("cpu.loadavg") // composite 1/5/15
     static let cpuBreakdown = MetricID("cpu.breakdown") // composite user/system/idle 0–1
-    static let systemUptime = MetricID("sys.uptime")    // scalar seconds
-    static let cpuTopology = MetricID("cpu.topology")   // composite e/p logical core counts
+    static let systemUptime = MetricID("sys.uptime") // scalar seconds
+    static let cpuTopology = MetricID("cpu.topology") // composite e/p logical core counts
 }
 
 /// CPU utilization from host_processor_info tick deltas.
@@ -39,8 +39,13 @@ public final class CPUReader: MetricReader, @unchecked Sendable {
         p: Int(Sysctl.value("hw.perflevel0.logicalcpu", default: Int32(0)))
     )
 
-    public var provides: [MetricID] { [.cpuUsage, .cpuPerCore, .cpuLoadAverage, .cpuBreakdown, .systemUptime, .cpuTopology] }
-    public var cadence: MetricCadence { .everyTick }
+    public var provides: [MetricID] {
+        [.cpuUsage, .cpuPerCore, .cpuLoadAverage, .cpuBreakdown, .systemUptime, .cpuTopology]
+    }
+
+    public var cadence: MetricCadence {
+        .everyTick
+    }
 
     public func read() throws -> [MetricSample] {
         let current = Self.sampleTicks()

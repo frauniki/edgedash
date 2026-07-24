@@ -2,15 +2,15 @@ import EdgeCore
 @testable import EdgeMetrics
 import Testing
 
-@Suite struct M4ReaderTests {
-    @Test func rateCounterComputesPerSecond() {
+struct M4ReaderTests {
+    @Test func rateCounterComputesPerSecond() throws {
         var counter = RateCounter()
         let t0 = ContinuousClock.now
         #expect(counter.rates(in: 1000, out: 500, at: t0) == nil) // no baseline
         let rates = counter.rates(in: 3000, out: 1500, at: t0.advanced(by: .seconds(2)))
         #expect(rates != nil)
-        #expect(abs(rates!.in - 1000) < 0.001)  // 2000 bytes over 2 s
-        #expect(abs(rates!.out - 500) < 0.001)
+        #expect(try abs(#require(rates?.in) - 1000) < 0.001) // 2000 bytes over 2 s
+        #expect(try abs(#require(rates?.out) - 500) < 0.001)
     }
 
     @Test func rateCounterHandlesCounterReset() {
@@ -35,8 +35,8 @@ import Testing
         guard case .composite(let d)? = samples.first?.value else {
             Issue.record("no capacity sample"); return
         }
-        #expect(d["total"]! > 100_000_000_000) // a real Mac has >100 GB storage
-        #expect(d["used"]! > 0 && d["used"]! < d["total"]!)
+        #expect(try #require(d["total"]) > 100_000_000_000) // a real Mac has >100 GB storage
+        #expect(try #require(d["used"]) > 0 && d["used"]! < d["total"]!)
     }
 
     @Test func liveGPUStatisticsPresent() {

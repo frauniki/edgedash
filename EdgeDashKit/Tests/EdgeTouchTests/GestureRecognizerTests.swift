@@ -2,7 +2,7 @@ import CoreGraphics
 @testable import EdgeTouch
 import Testing
 
-@Suite struct GestureRecognizerTests {
+struct GestureRecognizerTests {
     @Test func quickTouchIsTap() {
         var recognizer = GestureRecognizer()
         _ = recognizer.began(at: CGPoint(x: 100, y: 100), time: 0)

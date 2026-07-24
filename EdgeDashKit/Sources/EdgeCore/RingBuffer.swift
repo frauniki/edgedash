@@ -25,8 +25,13 @@ public struct RingBuffer<Element: Sendable>: Sendable {
         count = 0
     }
 
-    public var isEmpty: Bool { count == 0 }
-    public var last: Element? { count > 0 ? self[count - 1] : nil }
+    public var isEmpty: Bool {
+        count == 0
+    }
+
+    public var last: Element? {
+        count > 0 ? self[count - 1] : nil
+    }
 
     public subscript(_ index: Int) -> Element {
         precondition(index >= 0 && index < count, "RingBuffer index out of range")

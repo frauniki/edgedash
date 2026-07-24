@@ -3,8 +3,8 @@ import Foundation
 
 public extension MetricID {
     static let temperatures = MetricID("smc.temps") // composite: sensor name → °C
-    static let fans = MetricID("smc.fans")          // composite: "Fan N" → RPM
-    static let systemPower = MetricID("smc.power")  // scalar: total system watts
+    static let fans = MetricID("smc.fans") // composite: "Fan N" → RPM
+    static let systemPower = MetricID("smc.power") // scalar: total system watts
 }
 
 /// Quarantine module for private-API access. Everything here feature-detects
@@ -26,7 +26,8 @@ public enum SMCBridge {
     static func fanCount() -> Int {
         guard let smc = SMCConnection(),
               let (bytes, type) = smc.read(key: "FNum"),
-              let count = SMCConnection.decodeFloat(bytes: bytes, type: type) else {
+              let count = SMCConnection.decodeFloat(bytes: bytes, type: type)
+        else {
             return 0
         }
         return Int(count)
@@ -38,8 +39,13 @@ public enum SMCBridge {
 public struct SMCTemperatureReader: MetricReader {
     public init() {}
 
-    public var provides: [MetricID] { [.temperatures] }
-    public var cadence: MetricCadence { .every(3) }
+    public var provides: [MetricID] {
+        [.temperatures]
+    }
+
+    public var cadence: MetricCadence {
+        .every(3)
+    }
 
     public func read() throws -> [MetricSample] {
         let sensors = HIDTemperatureSensors.readAll()
@@ -59,8 +65,13 @@ public final class SMCPowerReader: MetricReader, @unchecked Sendable {
 
     public init() {}
 
-    public var provides: [MetricID] { [.systemPower] }
-    public var cadence: MetricCadence { .every(2) }
+    public var provides: [MetricID] {
+        [.systemPower]
+    }
+
+    public var cadence: MetricCadence {
+        .every(2)
+    }
 
     public func read() throws -> [MetricSample] {
         if smc == nil, !openAttempted {
@@ -70,7 +81,8 @@ public final class SMCPowerReader: MetricReader, @unchecked Sendable {
         if let smc,
            let (bytes, type) = smc.read(key: "PSTR"),
            let watts = SMCConnection.decodeFloat(bytes: bytes, type: type),
-           watts > 0, watts < 1000 {
+           watts > 0, watts < 1000
+        {
             return [MetricSample(id: .systemPower, value: .scalar(watts))]
         }
         return energyModelWatts()
@@ -96,8 +108,13 @@ public final class SMCFanReader: MetricReader, @unchecked Sendable {
 
     public init() {}
 
-    public var provides: [MetricID] { [.fans] }
-    public var cadence: MetricCadence { .every(3) }
+    public var provides: [MetricID] {
+        [.fans]
+    }
+
+    public var cadence: MetricCadence {
+        .every(3)
+    }
 
     public func read() throws -> [MetricSample] {
         if smc == nil, !openAttempted {
@@ -107,14 +124,16 @@ public final class SMCFanReader: MetricReader, @unchecked Sendable {
         guard let smc,
               let (countBytes, countType) = smc.read(key: "FNum"),
               let count = SMCConnection.decodeFloat(bytes: countBytes, type: countType),
-              count > 0 else {
+              count > 0
+        else {
             return []
         }
 
         var fans: [String: Double] = [:]
         for index in 0..<Int(count) {
             if let (bytes, type) = smc.read(key: "F\(index)Ac"),
-               let rpm = SMCConnection.decodeFloat(bytes: bytes, type: type) {
+               let rpm = SMCConnection.decodeFloat(bytes: bytes, type: type)
+            {
                 fans["Fan \(index)"] = rpm
             }
         }

@@ -5,7 +5,7 @@ import Testing
 
 // @MainActor: the geometry helpers live on DashboardPageView, whose View
 // conformance makes them MainActor-isolated.
-@MainActor @Suite struct GridGeometryTests {
+@MainActor struct GridGeometryTests {
     private let canvas = CGSize(width: 2560, height: 720)
     private let grid = GridDimensions.landscape
 
@@ -58,10 +58,12 @@ import Testing
             for: GridRect(col: 1, row: 1, size: GridSize(cols: 2, rows: 1)),
             in: canvas, grid: grid
         )
-        func approx(_ a: CGFloat, _ b: CGFloat) -> Bool { abs(a - b) < 0.001 }
-        #expect(approx(rect.minX, 338))   // inset + 1 cell + gutter/2
+        func approx(_ a: CGFloat, _ b: CGFloat) -> Bool {
+            abs(a - b) < 0.001
+        }
+        #expect(approx(rect.minX, 338)) // inset + 1 cell + gutter/2
         #expect(approx(rect.minY, 366))
-        #expect(approx(rect.width, 620))  // 2 cells minus gutter
+        #expect(approx(rect.width, 620)) // 2 cells minus gutter
         #expect(approx(rect.height, 332))
     }
 }

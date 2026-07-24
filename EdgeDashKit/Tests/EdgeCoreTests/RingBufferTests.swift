@@ -1,7 +1,7 @@
 import EdgeCore
 import Testing
 
-@Suite struct RingBufferTests {
+struct RingBufferTests {
     @Test func appendBelowCapacityKeepsOrder() {
         var buffer = RingBuffer<Int>(capacity: 4)
         buffer.append(1)
@@ -14,7 +14,9 @@ import Testing
 
     @Test func wrapAroundDropsOldest() {
         var buffer = RingBuffer<Int>(capacity: 3)
-        for i in 1...5 { buffer.append(i) }
+        for i in 1...5 {
+            buffer.append(i)
+        }
         #expect(buffer.count == 3)
         #expect(Array(buffer) == [3, 4, 5])
         #expect(buffer[0] == 3)
