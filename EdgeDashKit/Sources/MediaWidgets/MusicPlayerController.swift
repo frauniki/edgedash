@@ -29,9 +29,11 @@ public enum PlayerAvailability: Sendable, Equatable {
 
     private let transport: any MusicTransport
     private let pollInterval: Duration
+    private let settleDelay: Duration
     private var active = false
     private var pollTask: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
+    private var refreshPending = false
     private var notificationObserver: (any NSObjectProtocol)?
     private var artworkCache: [String: NSImage] = [:]
     private var artworkFetchID: String? // in-flight or cached key
@@ -39,9 +41,14 @@ public enum PlayerAvailability: Sendable, Equatable {
         pollTask != nil
     } // test hook
 
-    public init(transport: any MusicTransport, pollInterval: Duration = .seconds(1)) {
+    public init(
+        transport: any MusicTransport,
+        pollInterval: Duration = .seconds(1),
+        settleDelay: Duration = .milliseconds(700)
+    ) {
         self.transport = transport
         self.pollInterval = pollInterval
+        self.settleDelay = settleDelay
     }
 
     /// Driven by the app layer: true while a page containing a media widget
@@ -57,6 +64,7 @@ public enum PlayerAvailability: Sendable, Equatable {
             stopPolling()
             refreshTask?.cancel()
             refreshTask = nil
+            refreshPending = false
         }
     }
 
@@ -121,14 +129,34 @@ public enum PlayerAvailability: Sendable, Equatable {
                 self.handle(error: error)
             }
         }
+        // Music applies some commands a beat late (streams buffer, play/pause
+        // flips after the immediate re-read). One delayed re-read catches the
+        // settled state even if no playerInfo notification fires. Outside the
+        // command chain so rapid taps aren't serialized behind the delay.
+        Task { [weak self, settleDelay] in
+            try? await Task.sleep(for: settleDelay)
+            self?.refresh()
+        }
     }
 
     // MARK: - Refresh loop
 
     private func refresh() {
-        guard active, refreshTask == nil else { return } // coalesce bursts
+        guard active else { return }
+        guard refreshTask == nil else {
+            // A fetch is mid-flight and may return a state older than whatever
+            // prompted this call — remember to re-fetch, never drop the poke.
+            refreshPending = true
+            return
+        }
         refreshTask = Task { [transport] in
-            defer { refreshTask = nil }
+            defer {
+                refreshTask = nil
+                if refreshPending {
+                    refreshPending = false
+                    refresh()
+                }
+            }
             guard await transport.isRunning() else {
                 availability = .musicNotRunning
                 now = nil
@@ -151,12 +179,13 @@ public enum PlayerAvailability: Sendable, Equatable {
     private func handle(error: Error) {
         if case TransportError.notPermitted = error {
             availability = .permissionDenied
+            stopPolling()
         } else {
-            // Transient AppleEvents failure (Music quitting, timeout): keep
-            // the last state; polling stops so we don't hammer a dying app.
+            // Transient AppleEvents failure (busy app, timeout): keep the
+            // last state and keep polling — one hiccup must not freeze the
+            // display; the quit case is caught by isRunning() next cycle.
             availability = now == nil ? .musicNotRunning : availability
         }
-        stopPolling()
     }
 
     private func startPolling() {

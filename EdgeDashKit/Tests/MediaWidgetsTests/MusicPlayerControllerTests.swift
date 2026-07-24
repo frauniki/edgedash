@@ -13,6 +13,7 @@ final class FakeTransport: MusicTransport, @unchecked Sendable {
     private var _commands: [MusicCommand] = []
     private var _artworkFetches: [String?] = []
     private var _artworkData: Data?
+    private var _fetchDelay: Duration?
 
     var running: Bool {
         get { lock.withLock { _running } }
@@ -42,13 +43,23 @@ final class FakeTransport: MusicTransport, @unchecked Sendable {
         set { lock.withLock { _artworkData = newValue } }
     }
 
+    /// Simulates a slow AppleEvents round-trip: the state is captured when
+    /// the fetch starts, so it can return stale data if `state` changes
+    /// while the fetch is in flight.
+    var fetchDelay: Duration? {
+        get { lock.withLock { _fetchDelay } }
+        set { lock.withLock { _fetchDelay = newValue } }
+    }
+
     func isRunning() async -> Bool {
         running
     }
 
     func fetchNowPlaying() async throws -> NowPlayingState {
         if let error { throw error }
-        return state
+        let snapshot = state
+        if let fetchDelay { try? await Task.sleep(for: fetchDelay) }
+        return snapshot
     }
 
     func fetchArtworkData(persistentID: String?) async -> Data? {
@@ -91,7 +102,11 @@ private func tinyPNG() -> Data {
     private func makeController(
         _ transport: FakeTransport
     ) -> MusicPlayerController {
-        MusicPlayerController(transport: transport, pollInterval: .milliseconds(20))
+        MusicPlayerController(
+            transport: transport,
+            pollInterval: .milliseconds(20),
+            settleDelay: .milliseconds(50)
+        )
     }
 
     @Test func musicNotRunning() async {
@@ -179,6 +194,63 @@ private func tinyPNG() -> Data {
         #expect(transport.commands[3] == .setRepeat(.all))
         #expect(transport.commands[4] == .seek(to: 42))
         #expect(transport.commands[5] == .setVolume(0.5))
+        controller.setActive(false)
+    }
+
+    @Test func pokeDuringInFlightRefreshIsNotLost() async {
+        let transport = FakeTransport()
+        transport.state = NowPlayingState(playerState: .paused, title: "Song")
+        let controller = makeController(transport)
+        controller.setActive(true)
+        await eventually { controller.now?.playerState == .paused }
+
+        // A slow fetch holding the old state is mid-flight when the poke
+        // (playerInfo notification after play) arrives.
+        transport.fetchDelay = .milliseconds(80)
+        controller.retry()
+        transport.state.playerState = .playing
+        controller.retry()
+        transport.fetchDelay = nil
+
+        await eventually { controller.now?.playerState == .playing }
+        await eventually { controller.isPolling }
+        controller.setActive(false)
+    }
+
+    @Test func commandSettleRefreshCatchesLaggedStateChange() async {
+        let transport = FakeTransport()
+        transport.state = NowPlayingState(playerState: .paused, title: "Song")
+        let controller = makeController(transport)
+        controller.setActive(true)
+        await eventually { controller.now?.playerState == .paused }
+
+        // Music flips its reported state only after the command's immediate
+        // re-read; the delayed settle refresh must still pick it up.
+        controller.playPause()
+        await eventually { transport.commands.contains(.playPause) }
+        transport.state.playerState = .playing
+        await eventually { controller.now?.playerState == .playing }
+        await eventually { controller.isPolling }
+        controller.setActive(false)
+    }
+
+    @Test func transientErrorKeepsPollingAndRecovers() async {
+        let transport = FakeTransport()
+        transport.state = NowPlayingState(playerState: .playing, title: "Song A")
+        let controller = makeController(transport)
+        controller.setActive(true)
+        await eventually { controller.isPolling }
+
+        // One AppleEvents hiccup: last state stays on screen, polling
+        // survives, and the next successful fetch updates the display.
+        transport.error = .appleEventFailed(-609)
+        try? await Task.sleep(for: .milliseconds(80))
+        #expect(controller.isPolling)
+        #expect(controller.now?.title == "Song A")
+
+        transport.error = nil
+        transport.state = NowPlayingState(playerState: .playing, title: "Song B")
+        await eventually { controller.now?.title == "Song B" }
         controller.setActive(false)
     }
 
