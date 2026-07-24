@@ -10,5 +10,7 @@
 --ranges no-space
 
 # redundantSelf: Swift 6 actor-isolation makes some "redundant" selfs load-
-# bearing; unusedArguments: rewrites protocol-witness signatures to `_`.
---disable redundantSelf,unusedArguments
+# bearing; unusedArguments: rewrites protocol-witness signatures to `_`;
+# wrapIfStatementBodies/wrapIfExpressionBodies (0.62+): single-line
+# `if x { return }` and `if let v = x { v } else { 0 }` are used throughout.
+--disable redundantSelf,unusedArguments,wrapIfStatementBodies,wrapIfExpressionBodies
