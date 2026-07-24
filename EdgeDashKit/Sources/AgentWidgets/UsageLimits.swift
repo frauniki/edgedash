@@ -107,9 +107,20 @@ public struct UsageLimits: Sendable, Equatable {
         )
     }
 
+    /// Scope arrives flat ({"model": "claude-fable-5"}) or nested
+    /// ({"model": {"id": null, "display_name": "Fable"}, "surface": null}).
     private static func scopeLabel(_ value: Any?) -> String? {
+        if let text = value as? String { return text }
         guard let dict = value as? [String: Any] else { return nil }
-        return (dict["model"] as? String) ?? dict.values.compactMap { $0 as? String }.first
+        for key in ["model", "surface"] {
+            if let text = dict[key] as? String { return text }
+            if let nested = dict[key] as? [String: Any],
+               let text = (nested["display_name"] as? String) ?? (nested["id"] as? String)
+            {
+                return text
+            }
+        }
+        return dict.values.compactMap { $0 as? String }.first
     }
 
     /// "default_claude_max_5x" → "Max 5x".

@@ -198,9 +198,8 @@ private struct ClaudeCodeView: View {
     /// CodexBar-style plan limit bars: every window the API reports, with
     /// remaining %, reset countdown, and shortfall forecast when burning fast.
     private func limitRows(_ usage: UsageLimits) -> some View {
-        let windows = size.rows >= 2 ? usage.windows : Array(usage.windows.prefix(2))
-        return VStack(spacing: 3) {
-            ForEach(windows) { window in
+        VStack(spacing: 3) {
+            ForEach(usage.windows) { window in
                 limitRow(window, forecast: monitor.forecasts[window.id])
             }
         }
@@ -213,7 +212,7 @@ private struct ClaudeCodeView: View {
             Text(window.label)
                 .font(.system(size: 10, weight: .medium, design: .rounded))
                 .foregroundStyle(theme.textSecondary.color)
-                .frame(width: size.cols == 1 ? 18 : (size.cols >= 4 ? 70 : 52), alignment: .leading)
+                .frame(width: size.cols == 1 ? 46 : (size.cols >= 4 ? 70 : 52), alignment: .leading)
                 .lineLimit(1)
             MeterBar(fraction: fraction, color: theme.gaugeColor(fraction, warn: 0.7, critical: 0.9).color)
             Text(String(format: "%.0f%% left", window.remaining))

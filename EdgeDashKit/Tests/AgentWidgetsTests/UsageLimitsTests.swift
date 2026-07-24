@@ -14,7 +14,8 @@ struct UsageLimitsTests {
         {"kind": "weekly_all", "group": "weekly", "percent": 14, "severity": "normal",
          "resets_at": "2026-07-29T21:00:00.950467+00:00", "scope": null, "is_active": false},
         {"kind": "weekly_scoped", "group": "weekly", "percent": 26, "severity": "normal",
-         "resets_at": "2026-07-29T21:00:00.950839+00:00", "scope": {"model": "claude-fable-5"}, "is_active": false}
+         "resets_at": "2026-07-29T21:00:00.950839+00:00",
+         "scope": {"model": {"id": null, "display_name": "Fable"}, "surface": null}, "is_active": true}
       ]
     }
     """
@@ -26,8 +27,8 @@ struct UsageLimitsTests {
         #expect(limits.session?.remaining == 44)
         #expect(limits.weeklyAll?.percent == 14)
         #expect(limits.weeklyScoped?.percent == 26)
-        #expect(limits.weeklyScoped?.scope == "claude-fable-5")
-        #expect(limits.weeklyScoped?.label == "7d·fable-5")
+        #expect(limits.weeklyScoped?.scope == "Fable")
+        #expect(limits.weeklyScoped?.label == "7d·Fable")
         let resets = try #require(limits.session?.resetsAt)
         // 2026-07-23T13:00:00Z regardless of the microsecond fraction.
         let expected = try #require(ISO8601DateFormatter().date(from: "2026-07-23T13:00:00Z"))
@@ -45,6 +46,20 @@ struct UsageLimitsTests {
         #expect(limits.windows.count == 2)
         #expect(limits.windows[1].label == "daily routine")
         #expect(limits.windows[1].remaining == 100)
+    }
+
+    @Test func flatScopeShapesStillParse() throws {
+        let json = """
+        {"limits": [
+            {"kind": "weekly_scoped", "percent": 26, "scope": {"model": "claude-fable-5"}},
+            {"kind": "weekly_scoped", "percent": 12, "scope": "opus"}
+        ]}
+        """
+        let limits = try #require(UsageLimits.parse(Data(json.utf8)))
+        #expect(limits.windows[0].scope == "claude-fable-5")
+        #expect(limits.windows[0].label == "7d·fable-5")
+        #expect(limits.windows[1].scope == "opus")
+        #expect(limits.windows[1].label == "7d·opus")
     }
 
     @Test func planNamePrettifies() {
