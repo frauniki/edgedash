@@ -1,0 +1,52 @@
+# Tuned to the codebase's existing style; CI runs `swiftlint --strict`, so
+# every rule left enabled is expected to stay at zero violations.
+excluded:
+  - EdgeDashKit/.build
+  - EdgeDash.xcodeproj
+  - DerivedData
+
+disabled_rules:
+  # Canvas/geometry math legitimately uses tuples like (up, down, x, y).
+  - large_tuple
+  # Exhaustive switches (WMO weather codes, HID states) inflate this
+  # meaninglessly.
+  - cyclomatic_complexity
+  # `condition ? path.move(to:) : path.addLine(to:)` is idiomatic in the
+  # drawing code.
+  - void_function_in_ternary
+  # Binding(get:set:) and similar API shapes trip this constantly.
+  - multiple_closures_with_trailing_closure
+  # SwiftFormat owns brace placement and puts the opening brace on its own
+  # line after a wrapped multiline declaration; this rule disagrees.
+  - opening_brace
+
+identifier_name:
+  min_length:
+    warning: 1
+  max_length:
+    warning: 60
+
+line_length:
+  warning: 200
+  ignores_comments: true
+
+# The codebase uses trailing commas in multiline collections (SwiftFormat
+# enforces the same via `--commas always`).
+trailing_comma:
+  mandatory_comma: true
+
+nesting:
+  type_level: 3
+  function_level: 3
+
+file_length:
+  warning: 800
+  error: 1200
+
+type_body_length:
+  warning: 500
+  error: 800
+
+function_body_length:
+  warning: 80
+  error: 150

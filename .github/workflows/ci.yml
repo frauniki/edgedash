@@ -5,6 +5,16 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install linters
+        run: brew install swiftlint swiftformat
+      - name: SwiftFormat (lint mode)
+        run: swiftformat --lint .
+      - name: SwiftLint
+        run: swiftlint --strict
   test:
     # macos-26 = Xcode 26 / Swift 6.2, matching local development; the
     # macos-15 toolchain (Swift 6.0) rejects Swift 6.2 isolation inference

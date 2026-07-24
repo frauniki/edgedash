@@ -1,0 +1,14 @@
+# Match the codebase's existing style — this file is tuned so the initial
+# adoption diff stays mechanical.
+--swiftversion 6.0
+--exclude EdgeDashKit/.build,EdgeDash.xcodeproj,DerivedData
+
+# Existing style: trailing commas in multiline collections, `case .x(let y)`,
+# unspaced ranges (`0...1`).
+--commas always
+--patternlet inline
+--ranges no-space
+
+# redundantSelf: Swift 6 actor-isolation makes some "redundant" selfs load-
+# bearing; unusedArguments: rewrites protocol-witness signatures to `_`.
+--disable redundantSelf,unusedArguments
