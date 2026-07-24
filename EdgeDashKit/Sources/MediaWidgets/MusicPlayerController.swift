@@ -65,6 +65,8 @@ public enum PlayerAvailability: Sendable, Equatable {
             refreshTask?.cancel()
             refreshTask = nil
             refreshPending = false
+            pendingShuffle = nil
+            pendingRepeat = nil
         }
     }
 
@@ -96,16 +98,31 @@ public enum PlayerAvailability: Sendable, Equatable {
         send(.setVolume(min(max(volume, 0), 1)))
     }
 
+    /// Optimistic shuffle/repeat: Music applies these a beat late and keeps
+    /// reporting the old value for a moment, so rapid taps computed from
+    /// fetched state would resend the same mode forever (off→all, all, all…).
+    /// The pending value is what the UI shows and what the next tap starts
+    /// from, until Music confirms it or the hold expires (a manual change in
+    /// Music.app must eventually win).
+    private var pendingShuffle: (value: Bool, until: Date)?
+    private var pendingRepeat: (value: RepeatMode, until: Date)?
+    private static let pendingHold: TimeInterval = 3
+
     public func toggleShuffle() {
-        send(.setShuffle(!(now?.shuffle ?? false)))
+        let target = !(pendingShuffle?.value ?? now?.shuffle ?? false)
+        pendingShuffle = (target, Date().addingTimeInterval(Self.pendingHold))
+        now?.shuffle = target
+        send(.setShuffle(target))
     }
 
     public func cycleRepeatMode() {
-        let next: RepeatMode = switch now?.repeatMode ?? .off {
+        let next: RepeatMode = switch pendingRepeat?.value ?? now?.repeatMode ?? .off {
         case .off: .all
         case .all: .one
         case .one: .off
         }
+        pendingRepeat = (next, Date().addingTimeInterval(Self.pendingHold))
+        now?.repeatMode = next
         send(.setRepeat(next))
     }
 
@@ -167,13 +184,34 @@ public enum PlayerAvailability: Sendable, Equatable {
                 let state = try await transport.fetchNowPlaying()
                 guard !Task.isCancelled else { return }
                 availability = .ready
-                now = state
+                now = overlayPending(on: state)
                 updateArtwork(for: state)
                 state.playerState == .playing ? startPolling() : stopPolling()
             } catch {
                 handle(error: error)
             }
         }
+    }
+
+    /// Keeps optimistic shuffle/repeat on top of fetched state until Music
+    /// confirms them (or the hold expires).
+    private func overlayPending(on state: NowPlayingState) -> NowPlayingState {
+        var state = state
+        if let pending = pendingShuffle {
+            if state.shuffle == pending.value || Date() >= pending.until {
+                pendingShuffle = nil
+            } else {
+                state.shuffle = pending.value
+            }
+        }
+        if let pending = pendingRepeat {
+            if state.repeatMode == pending.value || Date() >= pending.until {
+                pendingRepeat = nil
+            } else {
+                state.repeatMode = pending.value
+            }
+        }
+        return state
     }
 
     private func handle(error: Error) {

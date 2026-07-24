@@ -197,6 +197,44 @@ private func tinyPNG() -> Data {
         controller.setActive(false)
     }
 
+    @Test func rapidRepeatTapsCycleThroughAllModes() async {
+        let transport = FakeTransport()
+        transport.state = NowPlayingState(playerState: .playing, title: "Song", repeatMode: .off)
+        let controller = makeController(transport)
+        controller.setActive(true)
+        await eventually { controller.now != nil }
+
+        // Music keeps reporting .off the whole time (it applies late) — the
+        // cycle must still advance from each tap's own requested mode.
+        controller.cycleRepeatMode()
+        controller.cycleRepeatMode()
+        controller.cycleRepeatMode()
+        await eventually { transport.commands.count == 3 }
+        #expect(transport.commands == [.setRepeat(.all), .setRepeat(.one), .setRepeat(.off)])
+        controller.setActive(false)
+    }
+
+    @Test func optimisticShuffleSurvivesStaleFetches() async {
+        let transport = FakeTransport()
+        transport.state = NowPlayingState(playerState: .playing, title: "Song", shuffle: false)
+        let controller = makeController(transport)
+        controller.setActive(true)
+        await eventually { controller.now != nil }
+
+        controller.toggleShuffle()
+        #expect(controller.now?.shuffle == true) // instant feedback
+
+        // Several poll cycles still reporting the stale false must not flip
+        // the icon back while the change is pending.
+        try? await Task.sleep(for: .milliseconds(80))
+        #expect(controller.now?.shuffle == true)
+
+        // Music confirms; the pending overlay clears and fetched state rules.
+        transport.state.shuffle = true
+        await eventually { controller.now?.shuffle == true }
+        controller.setActive(false)
+    }
+
     @Test func pokeDuringInFlightRefreshIsNotLost() async {
         let transport = FakeTransport()
         transport.state = NowPlayingState(playerState: .paused, title: "Song")

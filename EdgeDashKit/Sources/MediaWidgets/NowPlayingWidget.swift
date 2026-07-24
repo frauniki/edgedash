@@ -109,7 +109,7 @@ private struct NowPlayingView: View {
             }
             trackInfo(now, titleSize: 16, center: true)
             if config.showSeekBar { seekBar(now) }
-            transportRow(now, iconSize: 22)
+            transportRow(now, iconSize: 26)
             if config.showVolume { volumeRow(now) }
         }
     }
@@ -125,7 +125,7 @@ private struct NowPlayingView: View {
                 Spacer(minLength: 0)
                 trackInfo(now, titleSize: 20, center: false)
                 if config.showSeekBar { seekBar(now) }
-                transportRow(now, iconSize: 24)
+                transportRow(now, iconSize: 28)
                 if config.showVolume { volumeRow(now) }
                 Spacer(minLength: 0)
             }
@@ -142,7 +142,7 @@ private struct NowPlayingView: View {
             VStack(alignment: .leading, spacing: 7) {
                 trackInfo(now, titleSize: 15, center: false)
                 if config.showSeekBar { seekBar(now) }
-                transportRow(now, iconSize: 18)
+                transportRow(now, iconSize: 22)
             }
             .frame(maxWidth: .infinity)
         }
@@ -182,18 +182,18 @@ private struct NowPlayingView: View {
     }
 
     private var shuffleRepeatButtons: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 6) {
             TouchButton(action: { player.toggleShuffle() }) {
                 Image(systemName: "shuffle")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle((now?.shuffle ?? false) ? theme.accent.color : theme.textSecondary.color)
-                    .frame(width: 26, height: 22)
+                    .frame(width: 44, height: 32)
             }
             TouchButton(action: { player.cycleRepeatMode() }) {
                 Image(systemName: (now?.repeatMode == .one) ? "repeat.1" : "repeat")
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle((now?.repeatMode ?? .off) != .off ? theme.accent.color : theme.textSecondary.color)
-                    .frame(width: 26, height: 22)
+                    .frame(width: 44, height: 32)
             }
         }
     }
