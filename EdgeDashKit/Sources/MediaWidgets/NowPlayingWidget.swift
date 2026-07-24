@@ -198,26 +198,27 @@ private struct NowPlayingView: View {
         }
     }
 
+    /// The square container owns the layout; the image lives in an overlay so
+    /// a non-square jacket (e.g. 528×600) can never inflate the reported size
+    /// past 1:1 and push the other rows out of the widget.
     private var artwork: some View {
         let shape = RoundedRectangle(cornerRadius: theme.cornerRadius * 0.6, style: .continuous)
-        return Group {
-            if let image = player.artwork {
-                Image(nsImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
-                shape
-                    .fill(theme.track.color)
-                    .overlay {
-                        Image(systemName: "music.note")
-                            .font(.system(size: 26))
-                            .foregroundStyle(theme.textSecondary.color)
-                    }
+        return shape
+            .fill(theme.track.color)
+            .aspectRatio(1, contentMode: .fit)
+            .overlay {
+                if let image = player.artwork {
+                    Image(nsImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    Image(systemName: "music.note")
+                        .font(.system(size: 26))
+                        .foregroundStyle(theme.textSecondary.color)
+                }
             }
-        }
-        .aspectRatio(1, contentMode: .fit)
-        .clipShape(shape)
-        .opacity(dimmed ? 0.65 : 1)
+            .clipShape(shape)
+            .opacity(dimmed ? 0.65 : 1)
     }
 
     private func trackInfo(_ now: NowPlayingState, titleSize: CGFloat, center: Bool) -> some View {
