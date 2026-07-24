@@ -49,7 +49,9 @@ private enum FourCC {
     static let statePaused: UInt32 = 0x6B50_5370 // 'kPSp'
     static let repeatOff: UInt32 = 0x6B52_704F // 'kRpO'
     static let repeatOne: UInt32 = 0x6B52_7031 // 'kRp1'
-    static let repeatAll: UInt32 = 0x6B52_7041 // 'kRpA'
+    /// Music's sdef breaks the kRp_ pattern: eRpt "all" is 'kAll', not 'kRpA'.
+    /// Sending an invalid enum is silently ignored (setd replies errn=0).
+    static let repeatAll: UInt32 = 0x6B41_6C6C // 'kAll'
 }
 
 /// AppleEvents transport to Music.app. Every ScriptingBridge round-trip runs
