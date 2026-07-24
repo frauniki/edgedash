@@ -1,5 +1,13 @@
 # EdgeDash
 
+> iStat Menus-style dashboard for the Corsair XENEON EDGE, with real touch.
+
+[![CI](https://github.com/frauniki/edgedash/actions/workflows/ci.yml/badge.svg)](https://github.com/frauniki/edgedash/actions/workflows/ci.yml)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Swift](https://img.shields.io/badge/swift-6.0-F05138?logo=swift&logoColor=white)
+![macOS](https://img.shields.io/badge/macOS-15%2B-000000?logo=apple&logoColor=white)
+![Localized](https://img.shields.io/badge/lang-EN%20%C2%B7%20%E6%97%A5%E6%9C%AC%E8%AA%9E-8A2BE2)
+
 Native macOS dashboard for the Corsair XENEON EDGE (14.5″ 2560×720 touch
 strip) — iStat Menus-style system monitoring with real touch support, no iCUE
 required.
